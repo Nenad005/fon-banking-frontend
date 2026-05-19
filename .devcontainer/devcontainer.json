@@ -4,19 +4,21 @@
   "name": "Node.js & Expo Dev",
   // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
   "image": "mcr.microsoft.com/devcontainers/typescript-node:4-24-trixie",
+
+  "runArgs": ["--network=host"],
+
+  // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
     "ghcr.io/devcontainer-config/features/dot-config:4": {}
   },
+
   "remoteEnv": {
-    "REACT_NATIVE_PACKAGER_HOSTNAME": "0.0.0.0",
+    // "REACT_NATIVE_PACKAGER_HOSTNAME": "0.0.0.0",
     "CHOKIDAR_USEPOLLING": "true"
   },
 
-  // Features to add to the dev container. More info: https://containers.dev/features.
-  // "features": {},
-
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [8081],
+  // "forwardPorts": [8081],
   "portsAttributes": {
     "8081": {
       "label": "Expo Dev Server",
