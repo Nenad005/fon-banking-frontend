@@ -2,5 +2,15 @@ import { Stack } from "expo-router";
 import "../global.css";
 
 export default function RootLayout() {
-  return <Stack />;
+  return (
+    <Stack>
+      <Stack.Screen name="index" options={{ title: "FON Banka" }} />
+      <Stack.Screen name="(auth)/login" options={{ title: "Uloguj se" }} />
+      <Stack.Screen
+        name="(auth)/activation"
+        options={{ title: "Aktiviraj se" }}
+      />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    </Stack>
+  );
 }
