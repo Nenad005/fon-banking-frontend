@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "fonbanking",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "white",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
