@@ -5,7 +5,10 @@ export default function RootLayout() {
   return (
     <Stack>
       {/* <StatusBar barStyle="dark-content" /> */}
-      <Stack.Screen name="index" options={{ title: "FON Banka" }} />
+      <Stack.Screen
+        name="index"
+        options={{ title: "FON Banka", headerShown: false }}
+      />
       <Stack.Screen
         name="(auth)/login"
         options={{ title: "Uloguj se", animation: "slide_from_right" }}
