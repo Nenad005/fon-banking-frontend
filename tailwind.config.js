@@ -12,7 +12,12 @@ module.exports = {
       fontFamily: {
         dangrek: ["Dangrek-Regular"],
         darling: ["IngridDarling-Regular"],
-        inria: ["InriaSans-Regular"],
+        "inria-light": ["InriaSans-Light"],
+        "inria-light-italic": ["InriaSans-LightItalic"],
+        "inria-regular": ["InriaSans-Regular"],
+        "inria-regular-italic": ["InriaSans-Italic"],
+        "inria-bold": ["InriaSans-Bold"],
+        "inria-bold-italic": ["InriaSans-BoldItalic"],
         inter: ["Inter-Variable"],
         "inter-italic": ["Inter-VariableItalic"],
         inconsolata: ["Inconsolata"],

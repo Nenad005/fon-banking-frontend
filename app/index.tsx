@@ -61,8 +61,8 @@ export default function Index() {
             <Text className="text-white underline underline-offset-8">RS</Text>
           </View>
           <View className="flex gap-0">
-            <Text className="text-white text-3xl">Mobilno bankarstvo</Text>
-            <Text className="text-white text-base font-thin">
+            <Text className="text-white text-[2rem]">Mobilno bankarstvo</Text>
+            <Text className="text-white text-[1rem] font-inria-light">
               Vise vremena za ucenja, manje stresa
             </Text>
           </View>

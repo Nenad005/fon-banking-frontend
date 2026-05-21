@@ -10,7 +10,12 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     "Dangrek-Regular": require("../assets/fonts/Dangrek/Dangrek-Regular.ttf"),
     "IngridDarling-Regular": require("../assets/fonts/Ingrid_Darling/IngridDarling-Regular.ttf"),
+    "InriaSans-Light": require("../assets/fonts/Inria_Sans/InriaSans-Light.ttf"),
+    "InriaSans-LightItalic": require("../assets/fonts/Inria_Sans/InriaSans-LightItalic.ttf"),
     "InriaSans-Regular": require("../assets/fonts/Inria_Sans/InriaSans-Regular.ttf"),
+    "InriaSans-Italic": require("../assets/fonts/Inria_Sans/InriaSans-Italic.ttf"),
+    "InriaSans-Bold": require("../assets/fonts/Inria_Sans/InriaSans-Bold.ttf"),
+    "InriaSans-BoldItalic": require("../assets/fonts/Inria_Sans/InriaSans-BoldItalic.ttf"),
     "Inter-Variable": require("../assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf"),
     "Inter-VariableItalic": require("../assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf"),
     Inconsolata: require("../assets/fonts/Inconsolata/Inconsolata-VariableFont_wdth,wght.ttf"),
