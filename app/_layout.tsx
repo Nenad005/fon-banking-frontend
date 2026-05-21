@@ -1,6 +1,8 @@
+import Entypo from "@expo/vector-icons/Entypo";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { cssInterop } from "nativewind";
 import { useEffect } from "react";
 import "../global.css";
 
@@ -21,6 +23,15 @@ export default function RootLayout() {
     Inconsolata: require("../assets/fonts/Inconsolata/Inconsolata-VariableFont_wdth,wght.ttf"),
   });
 
+  cssInterop(Entypo, {
+    className: {
+      target: "style",
+      nativeStyleToProp: {
+        color: true, // Maps the Tailwind text color to the 'color' prop
+      },
+    },
+  });
+
   useEffect(() => {
     if (loaded || error) {
       SplashScreen.hideAsync();
@@ -39,7 +50,11 @@ export default function RootLayout() {
       />
       <Stack.Screen
         name="(auth)/login"
-        options={{ title: "Uloguj se", animation: "slide_from_right" }}
+        options={{
+          title: "Uloguj se",
+          animation: "slide_from_right",
+          headerShown: false,
+        }}
       />
       <Stack.Screen
         name="(auth)/activation"

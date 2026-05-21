@@ -6,7 +6,7 @@ import { Link } from "expo-router";
 import { cssInterop } from "nativewind";
 import { Pressable, StatusBar, StyleSheet, View } from "react-native";
 import colors from "tailwindcss/colors";
-import { Text } from "../components/Text";
+import { Text } from "../components/text";
 
 cssInterop(LinearGradient, {
   className: "style",
@@ -54,8 +54,8 @@ export default function Index() {
                 source={require("../assets/images/FON-Logo.svg")}
                 style={{ width: 40, height: 40 }}
               ></Image>
-              <Text className="text-white text-4xl font-dangrek">
-                FON <Text className="text-3xl font-darling">banka</Text>
+              <Text className="text-white text-5xl font-dangrek">
+                FON <Text className="text-4xl font-darling">banka</Text>
               </Text>
             </View>
             <Text className="text-white underline underline-offset-8">RS</Text>
@@ -70,7 +70,9 @@ export default function Index() {
         <View id="bottom" className="flex gap-4">
           <Link href={"/login"} push asChild className="bg-white rounded-lg">
             <Pressable className="w-full py-3">
-              <Text className="text-center text-xl">Uloguj se</Text>
+              <Text className="text-center text-xl font-inria-bold ">
+                Uloguj se
+              </Text>
             </Pressable>
           </Link>
           <View className="flex justify-between flex-row">

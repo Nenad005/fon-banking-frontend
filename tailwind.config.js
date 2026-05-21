@@ -4,7 +4,7 @@ module.exports = {
   content: [
     "./index.tsx",
     "./components/**/*.{js,jsx,ts,tsx}",
-    "./app/*.{js,jsx,ts,tsx}",
+    "./app/**/*.{js,jsx,ts,tsx}",
   ],
   presets: [require("nativewind/preset")],
   theme: {
@@ -21,6 +21,12 @@ module.exports = {
         inter: ["Inter-Variable"],
         "inter-italic": ["Inter-VariableItalic"],
         inconsolata: ["Inconsolata"],
+      },
+      colors: {
+        tirquise: "#004B7C",
+        magenta: "#D057A0",
+        cyan: "#60C3AD",
+        yellow: "#FFCD67",
       },
     },
   },
