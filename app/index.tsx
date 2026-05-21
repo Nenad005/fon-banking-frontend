@@ -53,8 +53,8 @@ export default function Index() {
                 source={require("../assets/images/FON-Logo.svg")}
                 style={{ width: 40, height: 40 }}
               ></Image>
-              <Text className="text-white text-4xl">
-                FON <Text className="text-3xl">banka</Text>
+              <Text className="text-white text-4xl font-dangrek">
+                FON <Text className="text-3xl font-darling">banka</Text>
               </Text>
             </View>
             <Text className="text-white underline underline-offset-8">RS</Text>
