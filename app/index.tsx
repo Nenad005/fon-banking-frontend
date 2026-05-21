@@ -4,8 +4,9 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { cssInterop } from "nativewind";
-import { Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
+import { Pressable, StatusBar, StyleSheet, View } from "react-native";
 import colors from "tailwindcss/colors";
+import { Text } from "../components/Text";
 
 cssInterop(LinearGradient, {
   className: "style",
@@ -90,11 +91,7 @@ export default function Index() {
           </View>
         </View>
       </View>
-      {/* <Text className="font-bold text-xl">PreAktivacija/Login stranica</Text> */}
-      {/* <Link href={"/login"} push asChild>
-        <Button title="Uloguj se"></Button>
-      </Link>
-      <Link href={"/activation"} push asChild>
+      {/* <Link href={"/activation"} push asChild>
         <Button title="Aktiviraj nalog"></Button>
       </Link> */}
     </View>
