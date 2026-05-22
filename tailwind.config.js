@@ -27,6 +27,7 @@ module.exports = {
         magenta: "#D057A0",
         cyan: "#60C3AD",
         yellow: "#FFCD67",
+        cgray: "#505050",
       },
     },
   },
