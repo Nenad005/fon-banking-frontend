@@ -20,7 +20,8 @@ module.exports = {
         "inria-bold-italic": ["InriaSans-BoldItalic"],
         inter: ["Inter-Variable"],
         "inter-italic": ["Inter-VariableItalic"],
-        inconsolata: ["Inconsolata"],
+        "inconsolata-regular": ["Inconsolata"],
+        "inconsolata-extrabold": ["Inconsolata-ExtraBold"],
       },
       colors: {
         tirquise: "#004B7C",

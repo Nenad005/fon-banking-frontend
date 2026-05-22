@@ -1,4 +1,8 @@
 import Entypo from "@expo/vector-icons/Entypo";
+import Feather from "@expo/vector-icons/Feather";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -20,10 +24,43 @@ export default function RootLayout() {
     "InriaSans-BoldItalic": require("../assets/fonts/Inria_Sans/InriaSans-BoldItalic.ttf"),
     "Inter-Variable": require("../assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf"),
     "Inter-VariableItalic": require("../assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf"),
-    Inconsolata: require("../assets/fonts/Inconsolata/Inconsolata-VariableFont_wdth,wght.ttf"),
+    "Inconsolata-Regular": require("../assets/fonts/Inconsolata/Inconsolata-VariableFont_wdth,wght.ttf"),
+    "Inconsolata-ExtraBold": require("../assets/fonts/Inconsolata/Inconsolata-ExtraBold.ttf"),
   });
 
   cssInterop(Entypo, {
+    className: {
+      target: "style",
+      nativeStyleToProp: {
+        color: true, // Maps the Tailwind text color to the 'color' prop
+      },
+    },
+  });
+  cssInterop(FontAwesome, {
+    className: {
+      target: "style",
+      nativeStyleToProp: {
+        color: true, // Maps the Tailwind text color to the 'color' prop
+      },
+    },
+  });
+  cssInterop(Ionicons, {
+    className: {
+      target: "style",
+      nativeStyleToProp: {
+        color: true, // Maps the Tailwind text color to the 'color' prop
+      },
+    },
+  });
+  cssInterop(MaterialIcons, {
+    className: {
+      target: "style",
+      nativeStyleToProp: {
+        color: true, // Maps the Tailwind text color to the 'color' prop
+      },
+    },
+  });
+  cssInterop(Feather, {
     className: {
       target: "style",
       nativeStyleToProp: {
