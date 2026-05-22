@@ -53,7 +53,7 @@ export default function PinInput({
               key={index}
               className={cn(
                 "w-14 h-14 border-2 border-solid rounded-lg items-center justify-center",
-                isFilled ? "border-magenta" : "border-gray-400",
+                isFilled ? "border-cmagenta" : "border-gray-400",
               )}
             >
               {isFilled && <Text className="text-5xl text-center pt-2">*</Text>}
@@ -74,7 +74,7 @@ export default function PinInput({
       />
 
       <View className="mt-2">
-        <Text className="font-inter text-gray">Unesite vas PIN</Text>
+        <Text className="font-inter text-cgray">Unesite vas PIN</Text>
       </View>
     </View>
   );

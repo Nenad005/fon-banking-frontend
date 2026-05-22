@@ -1,8 +1,11 @@
 import ContentHeader from "@/components/content-header";
 import { Text } from "@/components/text";
+import { cn } from "@/lib/utils";
 import Feather from "@expo/vector-icons/Feather";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 export default function HomePage() {
   const accountsData = [
@@ -11,7 +14,7 @@ export default function HomePage() {
       name: "Tekuci dinarski racun",
       accountId: "RS35-160500000001234567",
       balance: 145230,
-      color: "#D057A0",
+      color: "magenta",
       currency: "RSD",
     },
     {
@@ -19,20 +22,46 @@ export default function HomePage() {
       name: "Tekuci devizni racun",
       accountId: "EUR31-512572340004237267",
       balance: 1341.21,
-      color: "#004B7C",
+      color: "tirquise",
       currency: "EUR",
     },
   ];
 
+  const colorClassNames: Record<string, Record<string, string>> = {
+    magenta: {
+      background: "bg-cmagenta/90",
+      icon: "text-[#E58EC3]",
+    },
+    tirquise: {
+      background: "bg-ctirquise/80",
+      icon: "text-ctirquise",
+    },
+  };
+
+  const quickPayData = [
+    {
+      name: "Brat",
+      icon: "person" as "person" | "receipt",
+    },
+    {
+      name: "Sestra",
+      icon: "person" as "person" | "receipt",
+    },
+    {
+      name: "Infostan",
+      icon: "receipt" as "person" | "receipt",
+    },
+  ];
+
   return (
-    <View className="flex-1 pt-14 gap-7">
+    <View className="flex-1 pt-14 gap-7 ">
       <ContentHeader
         title="Dobrodosao, Marko"
         subtitle="Pregled vasih finansija"
-        className="px-5 border-2 border-solid"
+        className="px-5 border-0"
       ></ContentHeader>
-      <ScrollView
-        className="bg-gren-200 max-h-60 border-2 border-solid overflow-visible"
+      <ScrollView // PRIKAZ RACUNA
+        className="bg-gren-200 max-h-60 border-0 overflow-visible"
         horizontal={true}
         snapToEnd={true}
         showsHorizontalScrollIndicator={false}
@@ -64,11 +93,20 @@ export default function HomePage() {
             return (
               <View
                 key={account.accountId}
-                style={{ backgroundColor: account.color }}
-                className="p-4 rounded-3xl justify-between aspect-[1.6]"
+                className={cn(
+                  "p-4 rounded-3xl justify-between aspect-[1.6] overflow-hidden",
+                  colorClassNames[account.color].background,
+                )}
               >
+                <View className="absolute bottom-[-10px] right-[-30px] rotate-[20deg]">
+                  <FontAwesome
+                    name="bank"
+                    size={120}
+                    className={colorClassNames[account.color].icon}
+                  />
+                </View>
                 <View className="flex-row justify-between">
-                  <Text className="text-white uppercase text-lg">
+                  <Text className="text-white uppercase text-xl">
                     {account.title}
                   </Text>
                   <MaterialIcons name="more-vert" size={24} color="white" />
@@ -78,10 +116,10 @@ export default function HomePage() {
                     Ukupno raspolozivo stanje
                   </Text>
                   <View className="flex-row items-end gap-2">
-                    <Text className="text-yellow text-5xl font-inconsolata-extrabold">
+                    <Text className="text-cyellow text-5xl font-inconsolata-extrabold">
                       {formattedBalance}
                     </Text>
-                    <Text className="text-yellow text-2xl font-inria-bold">
+                    <Text className="text-cyellow text-2xl font-inria-bold">
                       {account.currency}
                     </Text>
                   </View>
@@ -99,7 +137,36 @@ export default function HomePage() {
       </ScrollView>
       <View className="flex gap-9 px-5">
         <View>
-          <Text className="text-cgray text-2xl">Brza placanja</Text>
+          <Text className="text-cgray text-2xl pb-5">Brza placanja</Text>
+          <ScrollView horizontal={true}>
+            <View className="flex-row gap-5">
+              {quickPayData.map((entry, index) => {
+                return (
+                  <Pressable key={index}>
+                    <View className="flex justify-center">
+                      <View className="flex justify-center items-center w-[55px] h-[55px] rounded-full bg-gray-200">
+                        <Ionicons
+                          name={`${entry.icon}-outline`}
+                          size={24}
+                          className="text-cgray"
+                        />
+                      </View>
+                      <Text className="text-center">{entry.name}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+              <Pressable>
+                <View className="flex justify-center">
+                  <View className="flex justify-center items-center w-[55px] h-[55px] rounded-full bg-ccyan">
+                    {/* {iconsFromName[entry.icon]} */}
+                    <Ionicons name={`add`} size={30} className="text-white" />
+                  </View>
+                  <Text className="text-center text-ctirquise">Dodaj</Text>
+                </View>
+              </Pressable>
+            </View>
+          </ScrollView>
         </View>
         <View>
           <Text className="text-cgray text-2xl">Poslednje transakcije</Text>

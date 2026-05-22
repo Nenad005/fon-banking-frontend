@@ -19,9 +19,9 @@ export default function LoginPage() {
               router.back();
             }}
           >
-            <Entypo name="chevron-left" size={30} className="text-tirquise" />
+            <Entypo name="chevron-left" size={30} className="text-ctirquise" />
           </Pressable>
-          <Text className="font-inria-bold text-[1.7rem] text-center text-tirquise">
+          <Text className="font-inria-bold text-[1.7rem] text-center text-ctirquise">
             Ulogujte se u mBanking
           </Text>
         </View>
@@ -36,8 +36,8 @@ export default function LoginPage() {
         <Link href={"/home"} dismissTo asChild>
           <Pressable
             className={cn(
-              "bg-cyan py-3 rounded-xl",
-              !isCodeReady && "bg-cyan/50",
+              "bg-ccyan py-3 rounded-xl",
+              !isCodeReady && "bg-ccyan/50",
             )}
             disabled={!isCodeReady}
           >

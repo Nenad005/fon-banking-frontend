@@ -28,7 +28,7 @@ export default function TabsLayout() {
             <FontAwesome
               name="home"
               size={24}
-              className={cn(focused ? "text-tirquise" : "text-cgray")}
+              className={cn(focused ? "text-ctirquise" : "text-cgray")}
             />
           ),
         }}
@@ -43,7 +43,7 @@ export default function TabsLayout() {
             <Entypo
               name="wallet"
               size={24}
-              className={cn(focused ? "text-tirquise" : "text-cgray")}
+              className={cn(focused ? "text-ctirquise" : "text-cgray")}
             />
           ),
         }}
@@ -57,7 +57,7 @@ export default function TabsLayout() {
               name="payments"
               size={24}
               color="black"
-              className={cn(focused ? "text-tirquise" : "text-cgray")}
+              className={cn(focused ? "text-ctirquise" : "text-cgray")}
             />
           ),
         }}
@@ -71,7 +71,7 @@ export default function TabsLayout() {
               name="bar-graph"
               size={20}
               color="black"
-              className={cn(focused ? "text-tirquise" : "text-cgray")}
+              className={cn(focused ? "text-ctirquise" : "text-cgray")}
             />
           ),
         }}
@@ -85,7 +85,7 @@ export default function TabsLayout() {
               name="settings"
               size={24}
               color="black"
-              className={cn(focused ? "text-tirquise" : "text-cgray")}
+              className={cn(focused ? "text-ctirquise" : "text-cgray")}
             />
           ),
         }}

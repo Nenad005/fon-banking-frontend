@@ -32,7 +32,7 @@ export default function RootLayout() {
     className: {
       target: "style",
       nativeStyleToProp: {
-        color: true, // Maps the Tailwind text color to the 'color' prop
+        color: true,
       },
     },
   });
@@ -40,7 +40,7 @@ export default function RootLayout() {
     className: {
       target: "style",
       nativeStyleToProp: {
-        color: true, // Maps the Tailwind text color to the 'color' prop
+        color: true,
       },
     },
   });
@@ -48,7 +48,7 @@ export default function RootLayout() {
     className: {
       target: "style",
       nativeStyleToProp: {
-        color: true, // Maps the Tailwind text color to the 'color' prop
+        color: true,
       },
     },
   });
@@ -56,7 +56,7 @@ export default function RootLayout() {
     className: {
       target: "style",
       nativeStyleToProp: {
-        color: true, // Maps the Tailwind text color to the 'color' prop
+        color: true,
       },
     },
   });
@@ -64,7 +64,7 @@ export default function RootLayout() {
     className: {
       target: "style",
       nativeStyleToProp: {
-        color: true, // Maps the Tailwind text color to the 'color' prop
+        color: true,
       },
     },
   });
