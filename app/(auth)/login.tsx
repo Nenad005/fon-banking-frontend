@@ -39,7 +39,7 @@ export default function LoginPage() {
               "bg-ccyan py-3 rounded-xl",
               !isCodeReady && "bg-ccyan/50",
             )}
-            disabled={!isCodeReady}
+            // disabled={!isCodeReady}
           >
             <Text className="text-center text-xl text-white font-inria-bold ">
               Dalje

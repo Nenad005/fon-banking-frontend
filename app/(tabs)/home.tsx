@@ -1,3 +1,4 @@
+import transactionsData from "@/assets/data/transactionsData.json";
 import ContentHeader from "@/components/content-header";
 import { Text } from "@/components/text";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,11 @@ export default function HomePage() {
       icon: "receipt" as "person" | "receipt",
     },
   ];
+  const transactions = transactionsData.sort((one, two) => {
+    return two.vremeTransakcije.localeCompare(one.vremeTransakcije);
+  });
+
+  const recentTransactions = transactions.splice(0, 2);
 
   return (
     <View className="flex-1 pt-14 gap-7 ">
@@ -61,7 +67,7 @@ export default function HomePage() {
         className="px-5 border-0"
       ></ContentHeader>
       <ScrollView // PRIKAZ RACUNA
-        className="bg-gren-200 max-h-60 border-0 overflow-visible"
+        className="bg-gren-200 max-h-60 min-h-60 border-0 overflow-visible"
         horizontal={true}
         snapToEnd={true}
         showsHorizontalScrollIndicator={false}
@@ -78,13 +84,13 @@ export default function HomePage() {
             let didigts = 0;
             for (let i = 0; i < account.accountId.length; i++) {
               if (dash) {
-                if (didigts % 4 == 0) {
+                if (didigts % 4 === 0) {
                   formattedId += " ";
                 }
                 formattedId += account.accountId[i];
                 didigts++;
               } else {
-                if (account.accountId[i] == "-") {
+                if (account.accountId[i] === "-") {
                   dash = true;
                 } else formattedId += account.accountId[i];
               }
@@ -138,11 +144,11 @@ export default function HomePage() {
       <View className="flex gap-9 px-5">
         <View>
           <Text className="text-cgray text-2xl pb-5">Brza placanja</Text>
-          <ScrollView horizontal={true}>
+          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
             <View className="flex-row gap-5">
               {quickPayData.map((entry, index) => {
                 return (
-                  <Pressable key={index}>
+                  <Pressable key={entry.name + index}>
                     <View className="flex justify-center">
                       <View className="flex justify-center items-center w-[55px] h-[55px] rounded-full bg-gray-200">
                         <Ionicons
@@ -169,7 +175,49 @@ export default function HomePage() {
           </ScrollView>
         </View>
         <View>
-          <Text className="text-cgray text-2xl">Poslednje transakcije</Text>
+          <View className="flex-row justify-between items-end">
+            <Text className="text-cgray text-2xl">Poslednje transakcije</Text>
+            <Text className="text-ctirquise font-inter font-medium text-[14px]"></Text>
+          </View>
+          <View>
+            {recentTransactions.map((transaction) => {
+              return (
+                <View key={transaction.id} className="flex-row w-full">
+                  <View className="flex justify-center items-center w-[55px] h-[55px] rounded-full bg-ccyan">
+                    {/* {iconsFromName[entry.icon]} */}
+                    <Ionicons
+                      name={`cart-outline`}
+                      size={30}
+                      className="text-white"
+                    />
+                  </View>
+                  <View className="flex-row justify-between">
+                    <View>
+                      <Text>
+                        {transaction.tipTransakcije === "odliv"
+                          ? transaction.nazivPrimaoca
+                          : transaction.nazivPosiljaoca}
+                      </Text>
+                      <Text>{transaction.vremeTransakcije}</Text>
+                    </View>
+                    <View>
+                      <Text
+                        className={cn(
+                          "",
+                          transaction.tipTransakcije === "odliv"
+                            ? "text-red-400"
+                            : "text-green-400",
+                        )}
+                      >
+                        {transaction.tipTransakcije === "odliv" ? "-" : ""}
+                        {transaction.iznos}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
         </View>
         <View>
           <Text className="text-cgray text-2xl">Kursna lista</Text>
