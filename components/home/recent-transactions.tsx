@@ -61,7 +61,7 @@ export default function RecentTransactions({
                 <Text className="font-inria-light text-cgray">
                   {transaction.cardNumber
                     ? "Placanje Karticom"
-                    : transaction.transactionType == "priliv"
+                    : transaction.transactionType === "priliv"
                       ? "Uplata na racun"
                       : "Odliv sa racuna"}
                 </Text>

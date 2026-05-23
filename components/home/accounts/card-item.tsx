@@ -87,8 +87,10 @@ export default function CardItem({
   const animationRef = useRef<LottieView>(null);
 
   const handleCopyPress = async () => {
+    console.log("poceo");
     animationRef.current?.play();
     await Clipboard.setStringAsync(account.accountId);
+    console.log("zavrsio");
   };
 
   return (

@@ -1,9 +1,9 @@
 import { accountsData } from "@/assets/data/homePageData";
 import ContentHeader from "@/components/content-header";
 import CardsSwiper from "@/components/home/accounts/cards-swiper";
+import ExhangeRates from "@/components/home/exchange-rates";
 import QuickPayments from "@/components/home/quick-payments";
 import RecentTransactions from "@/components/home/recent-transactions";
-import { Text } from "@/components/text";
 import { ScrollView, View } from "react-native";
 
 export default function HomePage() {
@@ -19,9 +19,7 @@ export default function HomePage() {
         <View className="flex-1 px-5 w-full ">
           <QuickPayments className="pb-9" />
           <RecentTransactions className="pb-9" />
-          <View>
-            <Text className="text-cgray text-2xl pb-9">Kursna lista</Text>
-          </View>
+          <ExhangeRates base="RSD" quoutes={["USD", "EUR", "CHF"]} />
         </View>
       </ScrollView>
     </View>
