@@ -1,15 +1,22 @@
 import transactionsData from "@/assets/data/transactionsData.json";
 import ContentHeader from "@/components/content-header";
+import CardsSwiper from "@/components/home/cards-swiper";
 import { Text } from "@/components/text";
 import { cn } from "@/lib/utils";
-import Feather from "@expo/vector-icons/Feather";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Pressable, ScrollView, View } from "react-native";
 
+export type Account = {
+  title: string;
+  name: string;
+  accountId: string;
+  balance: number;
+  color: "magenta" | "tirquise";
+  currency: string;
+};
+
 export default function HomePage() {
-  const accountsData = [
+  const accountsData: Account[] = [
     {
       title: "GLAVNI RACUN",
       name: "Tekuci dinarski racun",
@@ -54,10 +61,10 @@ export default function HomePage() {
     },
   ];
   const transactions = transactionsData.sort((one, two) => {
-    return two.vremeTransakcije.localeCompare(one.vremeTransakcije);
+    return two.transactionTime.localeCompare(one.transactionTime);
   });
 
-  const recentTransactions = transactions.splice(0, 2);
+  const recentTransactions = transactions.splice(0, 5);
 
   return (
     <View className="flex-1 pt-14 gap-7 ">
@@ -66,83 +73,9 @@ export default function HomePage() {
         subtitle="Pregled vasih finansija"
         className="px-5 border-0"
       ></ContentHeader>
-      <ScrollView // PRIKAZ RACUNA
-        className="bg-gren-200 max-h-60 min-h-60 border-0 overflow-visible"
-        horizontal={true}
-        snapToEnd={true}
-        showsHorizontalScrollIndicator={false}
-      >
-        <View className="flex-row gap-5 px-5">
-          {accountsData.map((account, index) => {
-            const formatter = new Intl.NumberFormat("en-US", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            });
-            const formattedBalance = formatter.format(account.balance);
-            let formattedId = "";
-            let dash = false;
-            let didigts = 0;
-            for (let i = 0; i < account.accountId.length; i++) {
-              if (dash) {
-                if (didigts % 4 === 0) {
-                  formattedId += " ";
-                }
-                formattedId += account.accountId[i];
-                didigts++;
-              } else {
-                if (account.accountId[i] === "-") {
-                  dash = true;
-                } else formattedId += account.accountId[i];
-              }
-            }
-
-            return (
-              <View
-                key={account.accountId}
-                className={cn(
-                  "p-4 rounded-3xl justify-between aspect-[1.6] overflow-hidden",
-                  colorClassNames[account.color].background,
-                )}
-              >
-                <View className="absolute bottom-[-10px] right-[-30px] rotate-[20deg]">
-                  <FontAwesome
-                    name="bank"
-                    size={120}
-                    className={colorClassNames[account.color].icon}
-                  />
-                </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-white uppercase text-xl">
-                    {account.title}
-                  </Text>
-                  <MaterialIcons name="more-vert" size={24} color="white" />
-                </View>
-                <View>
-                  <Text className="text-white text-lg">
-                    Ukupno raspolozivo stanje
-                  </Text>
-                  <View className="flex-row items-end gap-2">
-                    <Text className="text-cyellow text-5xl font-inconsolata-extrabold">
-                      {formattedBalance}
-                    </Text>
-                    <Text className="text-cyellow text-2xl font-inria-bold">
-                      {account.currency}
-                    </Text>
-                  </View>
-                </View>
-                <View className="flex-row items-end gap-3">
-                  <Text className="text-white font-lg">{formattedId}</Text>
-                  <View className="h-fit pb-1">
-                    <Feather name="copy" size={18} color="white" />
-                  </View>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      </ScrollView>
-      <View className="flex gap-9 px-5">
-        <View>
+      <CardsSwiper accountsData={accountsData}></CardsSwiper>
+      <View className="flex gap-9 px-5 w-full ">
+        <View className="">
           <Text className="text-cgray text-2xl pb-5">Brza placanja</Text>
           <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
             <View className="flex-row gap-5">
@@ -174,45 +107,63 @@ export default function HomePage() {
             </View>
           </ScrollView>
         </View>
-        <View>
-          <View className="flex-row justify-between items-end">
+        <View className="gap-5">
+          <View className="flex-row justify-between items-end ">
             <Text className="text-cgray text-2xl">Poslednje transakcije</Text>
-            <Text className="text-ctirquise font-inter font-medium text-[14px]"></Text>
+            <Text className="text-ctirquise font-inter font-medium text-[14px] pb-1">
+              Prikazi sve
+            </Text>
           </View>
-          <View>
+          <View className="gap-0">
             {recentTransactions.map((transaction) => {
+              const formatter = new Intl.NumberFormat("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              });
+              const formattedAmount = formatter.format(transaction.amount);
+
               return (
-                <View key={transaction.id} className="flex-row w-full">
-                  <View className="flex justify-center items-center w-[55px] h-[55px] rounded-full bg-ccyan">
+                <View
+                  key={transaction.id}
+                  className="flex-row items-center w-full"
+                >
+                  <View className="flex justify-center items-center w-[55px] h-[55px] rounded-full bg-gray-200">
                     {/* {iconsFromName[entry.icon]} */}
                     <Ionicons
                       name={`cart-outline`}
                       size={30}
-                      className="text-white"
+                      className="text-ctirquise"
                     />
                   </View>
-                  <View className="flex-row justify-between">
-                    <View>
-                      <Text>
-                        {transaction.tipTransakcije === "odliv"
-                          ? transaction.nazivPrimaoca
-                          : transaction.nazivPosiljaoca}
-                      </Text>
-                      <Text>{transaction.vremeTransakcije}</Text>
-                    </View>
-                    <View>
-                      <Text
-                        className={cn(
-                          "",
-                          transaction.tipTransakcije === "odliv"
-                            ? "text-red-400"
-                            : "text-green-400",
-                        )}
-                      >
-                        {transaction.tipTransakcije === "odliv" ? "-" : ""}
-                        {transaction.iznos}
-                      </Text>
-                    </View>
+                  <View className="justify-between flex-1 pl-2">
+                    <Text className="font-inria-bold text-lg pb-2 text-nowrap text-ellipsis">
+                      {transaction.transactionType === "odliv"
+                        ? transaction.recipientName
+                        : transaction.senderName}
+                    </Text>
+                    <Text className="font-inria-light text-cgray">
+                      {transaction.transactionTime.slice(0, 5)}
+                    </Text>
+                  </View>
+                  <View className="items-end justify-between">
+                    <Text
+                      className={cn(
+                        "font-inria text-lg pb-2",
+                        transaction.transactionType === "odliv"
+                          ? "text-red-400"
+                          : "text-green-400",
+                      )}
+                    >
+                      {transaction.transactionType === "odliv" ? "-" : ""}
+                      {formattedAmount} {transaction.currency}
+                    </Text>
+                    <Text className="font-inria-light text-cgray">
+                      {transaction.cardNumber
+                        ? "Placanje Karticom"
+                        : transaction.transactionTime === "priliv"
+                          ? "Uplata na racun"
+                          : "Uplata na racun"}
+                    </Text>
                   </View>
                 </View>
               );
