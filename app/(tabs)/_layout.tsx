@@ -1,6 +1,4 @@
 import { cn } from "@/lib/utils";
-import Entypo from "@expo/vector-icons/Entypo";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Tabs, useSegments } from "expo-router";
@@ -25,8 +23,8 @@ export default function TabsLayout() {
           title: "Pocetna",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <FontAwesome
-              name="home"
+            <Ionicons
+              name="home-outline"
               size={24}
               className={cn(focused ? "text-ctirquise" : "text-cgray")}
             />
@@ -40,8 +38,8 @@ export default function TabsLayout() {
           // headerShown: isNestedProductScreen ? false : true,
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <Entypo
-              name="wallet"
+            <Ionicons
+              name="wallet-outline"
               size={24}
               className={cn(focused ? "text-ctirquise" : "text-cgray")}
             />
@@ -67,8 +65,8 @@ export default function TabsLayout() {
         options={{
           title: "Transakcije",
           tabBarIcon: ({ focused }) => (
-            <Entypo
-              name="bar-graph"
+            <Ionicons
+              name="stats-chart-outline"
               size={20}
               color="black"
               className={cn(focused ? "text-ctirquise" : "text-cgray")}
@@ -82,7 +80,7 @@ export default function TabsLayout() {
           title: "Podesavanja",
           tabBarIcon: ({ focused }) => (
             <Ionicons
-              name="settings"
+              name="settings-outline"
               size={24}
               color="black"
               className={cn(focused ? "text-ctirquise" : "text-cgray")}

@@ -35,17 +35,6 @@ export default function HomePage() {
     },
   ];
 
-  const colorClassNames: Record<string, Record<string, string>> = {
-    magenta: {
-      background: "bg-cmagenta/90",
-      icon: "text-[#E58EC3]",
-    },
-    tirquise: {
-      background: "bg-ctirquise/80",
-      icon: "text-ctirquise",
-    },
-  };
-
   const quickPayData = [
     {
       name: "Brat",
@@ -114,7 +103,7 @@ export default function HomePage() {
               Prikazi sve
             </Text>
           </View>
-          <View className="gap-0">
+          <View className="gap-3">
             {recentTransactions.map((transaction) => {
               const formatter = new Intl.NumberFormat("en-US", {
                 minimumFractionDigits: 2,
