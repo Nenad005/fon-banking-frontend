@@ -1,10 +1,12 @@
-import { Account } from "@/app/(tabs)/home";
+import { Account } from "@/assets/data/homePageData";
 import { Text } from "@/components/text";
 import { cn } from "@/lib/utils";
-import Feather from "@expo/vector-icons/Feather";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Dimensions, View } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import LottieView from "lottie-react-native";
+import { useRef } from "react";
+import { Dimensions, Pressable, View } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -82,6 +84,13 @@ export default function CardItem({
     };
   });
 
+  const animationRef = useRef<LottieView>(null);
+
+  const handleCopyPress = async () => {
+    animationRef.current?.play();
+    await Clipboard.setStringAsync(account.accountId);
+  };
+
   return (
     <Animated.View
       className={cn("w-[90vw] pl-5", index === length - 1 ? "mx-5" : "")}
@@ -116,11 +125,17 @@ export default function CardItem({
             </Text>
           </View>
         </View>
-        <View className="flex-row items-end gap-3">
+        <View className="flex-row items-end gap-1">
           <Text className="text-white font-lg">{formattedId}</Text>
-          <View className="h-fit pb-1">
-            <Feather name="copy" size={18} color="white" />
-          </View>
+          <Pressable className="h-fit" onPress={handleCopyPress}>
+            <LottieView
+              ref={animationRef}
+              source={require("@/assets/lottie/Checkmark.json")} // Your downloaded Lottie file
+              autoPlay={false}
+              loop={false}
+              style={{ width: 25, height: 25 }}
+            />
+          </Pressable>
         </View>
       </View>
     </Animated.View>

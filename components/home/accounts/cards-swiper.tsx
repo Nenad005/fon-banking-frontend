@@ -1,4 +1,4 @@
-import { Account } from "@/app/(tabs)/home";
+import { Account } from "@/assets/data/homePageData";
 import { useRef, useState } from "react";
 import { View, ViewToken, ViewabilityConfigCallbackPair } from "react-native";
 import Animated, {

@@ -1,4 +1,4 @@
-import { Account } from "@/app/(tabs)/home";
+import { Account } from "@/assets/data/homePageData";
 import { cn } from "@/lib/utils";
 import { Dimensions, View } from "react-native";
 import Animated, {
@@ -56,7 +56,7 @@ export default function CardsPagination({
   scrollX: SharedValue<number>;
 }) {
   return (
-    <View className="flex-row justify-center pt-4 gap-2">
+    <View className="flex-row justify-center pt-4 pb-4 gap-2">
       {items.map((_, index) => {
         return (
           <Dot
