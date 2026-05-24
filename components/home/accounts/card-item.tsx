@@ -1,12 +1,9 @@
-import { Account } from "@/assets/data/homePageData";
+import { Card } from "@/assets/data/homePageData";
 import { Text } from "@/components/text";
 import { cn } from "@/lib/utils";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import * as Clipboard from "expo-clipboard";
-import LottieView from "lottie-react-native";
-import { useRef } from "react";
-import { Dimensions, Pressable, View } from "react-native";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { Dimensions, View } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -15,51 +12,18 @@ import Animated, {
 } from "react-native-reanimated";
 
 export default function CardItem({
-  account,
+  card,
   index,
   scrollX,
   length,
 }: {
-  account: Account;
+  card: Card;
   index: number;
   scrollX: SharedValue<number>;
   length: number;
 }) {
   let { width } = Dimensions.get("screen");
   width *= 0.9;
-
-  const colorClassNames: Record<string, Record<string, string>> = {
-    magenta: {
-      background: "bg-cmagenta/90",
-      icon: "text-[#E58EC3]",
-    },
-    tirquise: {
-      background: "bg-ctirquise/80",
-      icon: "text-ctirquise",
-    },
-  };
-
-  const formatter = new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  const formattedBalance = formatter.format(account.balance);
-  let formattedId = "";
-  let dash = false;
-  let didigts = 0;
-  for (let i = 0; i < account.accountId.length; i++) {
-    if (dash) {
-      if (didigts % 4 === 0) {
-        formattedId += " ";
-      }
-      formattedId += account.accountId[i];
-      didigts++;
-    } else {
-      if (account.accountId[i] === "-") {
-        dash = true;
-      } else formattedId += account.accountId[i];
-    }
-  }
 
   const reAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -84,14 +48,39 @@ export default function CardItem({
     };
   });
 
-  const animationRef = useRef<LottieView>(null);
+  let formattedId = "";
+  let dash = false;
+  let didigts = 0;
+  for (let i = 0; i < card.accountId.length; i++) {
+    if (dash) {
+      if (didigts % 4 === 0) {
+        formattedId += " ";
+      }
+      formattedId += card.accountId[i];
+      didigts++;
+    } else {
+      if (card.accountId[i] === "-") {
+        dash = true;
+      } else formattedId += card.accountId[i];
+    }
+  }
 
-  const handleCopyPress = async () => {
-    console.log("poceo");
-    animationRef.current?.play();
-    await Clipboard.setStringAsync(account.accountId);
-    console.log("zavrsio");
-  };
+  let hiddenCardDigits = ["", "", "", ""];
+  let j = 0;
+  for (let i = 0; i < card.cardId.length; i++) {
+    if (i % 4 === 0 && i !== 0) {
+      j++;
+    }
+    if (i < 12) hiddenCardDigits[j] += "*";
+    else hiddenCardDigits[j] += card.cardId[i];
+  }
+
+  console.log(hiddenCardDigits);
+
+  const expireDate = new Date(card.expireDate);
+
+  // const monthString = (expireDate.getMonth() + 1).toString().padStart(2, "0");
+  const yearString = expireDate.getFullYear().toString().slice(2, 4);
 
   return (
     <Animated.View
@@ -99,45 +88,76 @@ export default function CardItem({
       style={reAnimatedStyle}
     >
       <View
-        key={account.accountId}
-        className={cn(
-          "p-4 rounded-3xl justify-between aspect-[1.6] overflow-hidden",
-          colorClassNames[account.color].background,
-        )}
+        key={card.cardId}
+        className={cn("p-4 rounded-3xl relative justify-between aspect-[1.6]")}
       >
-        <View className="absolute bottom-[-10px] right-[-30px] rotate-[20deg]">
-          <FontAwesome
-            name="bank"
-            size={120}
-            className={colorClassNames[account.color].icon}
+        <View className="absolute inset-0 bg-red-400 rounded-3xl overflow-hidden">
+          <LinearGradient
+            className="w-full h-full"
+            colors={
+              card.cardType !== "Master"
+                ? ["#004B7C", "#60C3AD"]
+                : ["#004B7C", "#D057A0"]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
           />
         </View>
         <View className="flex-row justify-between">
-          <Text className="text-white uppercase text-xl">{account.title}</Text>
-          <MaterialIcons name="more-vert" size={24} color="white" />
-        </View>
-        <View>
-          <Text className="text-white text-lg">Ukupno raspolozivo stanje</Text>
-          <View className="flex-row items-end gap-2">
-            <Text className="text-cyellow text-5xl font-inconsolata-extrabold">
-              {formattedBalance}
-            </Text>
-            <Text className="text-cyellow text-2xl font-inria-bold">
-              {account.currency}
-            </Text>
+          <View className="gap-2">
+            <View className="flex flex-row items-center gap-2">
+              <Image
+                source={require("@/assets/images/FON-Logo.svg")}
+                style={{ width: 35, height: 35 }}
+              ></Image>
+              <Text className="text-white text-3xl font-dangrek">
+                FON <Text className="text-4xl font-darling">kartica</Text>
+              </Text>
+            </View>
+            <Text className="text-white">{formattedId}</Text>
           </View>
+          <Image
+            source={require("@/assets/images/card-nfc.svg")}
+            style={{ width: 35, height: 35 }}
+          ></Image>
         </View>
-        <View className="flex-row items-end gap-1">
-          <Text className="text-white font-lg">{formattedId}</Text>
-          <Pressable className="h-fit" onPress={handleCopyPress}>
-            <LottieView
-              ref={animationRef}
-              source={require("@/assets/lottie/Checkmark.json")} // Your downloaded Lottie file
-              autoPlay={false}
-              loop={false}
-              style={{ width: 25, height: 25 }}
-            />
-          </Pressable>
+        <View className="flex-row justify-between items-end">
+          <View>
+            <View className="flex-row gap-2">
+              {hiddenCardDigits.map((section, index) => {
+                return (
+                  <Text
+                    className={cn(
+                      "text-white text-[21px]",
+                      index === 3 ? "" : "pt-[2px] tracking-wide text-[25px]",
+                    )}
+                    key={"card-digits-" + index}
+                  >
+                    {section}
+                  </Text>
+                );
+              })}
+            </View>
+            <View className="flex-row gap-2">
+              <Text className="text-white text-[15px] pt-[2px] tracking-wider">
+                **
+              </Text>
+              <Text className="text-white text-[15px]">/</Text>
+              <Text className="text-white text-[15px]">{yearString}</Text>
+            </View>
+            <Text className="text-white">Marko Nenadovic</Text>
+          </View>
+          {card.cardType === "Master" ? (
+            <Image
+              source={require("@/assets/images/mastercard-logo.svg")}
+              style={{ height: 35, aspectRatio: 1.42 }}
+            ></Image>
+          ) : (
+            <Image
+              source={require("@/assets/images/visa-logo.svg")}
+              style={{ height: 24, aspectRatio: 3.2 }}
+            ></Image>
+          )}
         </View>
       </View>
     </Animated.View>

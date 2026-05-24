@@ -10,7 +10,7 @@ export default function ProductsLayout() {
         name="index"
         options={{
           title: "Proizvodi",
-          // headerShown: true,
+          headerShown: false,
           // header: (props) => <Header title="Proizvodi" {...props} />,
         }}
       />

@@ -46,7 +46,7 @@ export default function RecentTransactions({
           const month = transactionDate.getMonth();
           const diff = now.getDate() - day;
           const date =
-            diff == 0
+            diff === 0
               ? "Danas"
               : diff === 1
                 ? "Juce"

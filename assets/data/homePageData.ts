@@ -81,6 +81,37 @@ export const quickPayData: QuickPayEntry[] = [
   },
 ];
 
+export type Card = {
+  accountId: string;
+  cardId: string;
+  cardType: "Master" | "Visa";
+  expireDate: string;
+  ownerName: string;
+  currency: Currency;
+  cvv: string;
+};
+
+export const cardsData: Card[] = [
+  {
+    accountId: "RS35-160500000001234567",
+    cardId: "5355460035171420",
+    cardType: "Master",
+    expireDate: "2026-10-24T14:30:00Z",
+    ownerName: "Marko Nenadovic",
+    currency: "RSD",
+    cvv: "742",
+  },
+  {
+    accountId: "EUR31-512572340004237267",
+    cardId: "4000123456784342",
+    cardType: "Visa",
+    expireDate: "2027-05-12T12:00:00Z",
+    ownerName: "Marko Nenadovic",
+    currency: "EUR",
+    cvv: "369",
+  },
+];
+
 export type ExchangeRate = {
   date: string;
   base: Currency;
@@ -352,7 +383,7 @@ export const transactionsData: Transaction[] = [
     paymentCode: "221",
     transactionTime: "2026-05-18T22:15:30Z",
     status: "izvrsena",
-    cardNumber: "5355460035171420",
+    cardNumber: "4000123456784342",
   },
   {
     id: "tx-1006",
@@ -420,7 +451,7 @@ export const transactionsData: Transaction[] = [
     paymentCode: "221",
     transactionTime: "2026-05-14T08:15:00Z",
     status: "izvrsena",
-    cardNumber: "5355460035171420",
+    cardNumber: "4000123456784342",
   },
   {
     id: "tx-1010",
@@ -675,7 +706,7 @@ export const transactionsData: Transaction[] = [
     paymentCode: "221",
     transactionTime: "2026-05-01T10:00:00Z",
     status: "izvrsena",
-    cardNumber: "5355460035171420",
+    cardNumber: "4000123456784342",
   },
   {
     id: "tx-1025",
@@ -692,7 +723,7 @@ export const transactionsData: Transaction[] = [
     paymentCode: "221",
     transactionTime: "2026-05-01T10:05:00Z",
     status: "izvrsena",
-    cardNumber: "5355460035171420",
+    cardNumber: "4000123456784342",
   },
   {
     id: "tx-1026",
@@ -709,7 +740,7 @@ export const transactionsData: Transaction[] = [
     paymentCode: "221",
     transactionTime: "2026-04-30T15:40:00Z",
     status: "izvrsena",
-    cardNumber: "5355460035171420",
+    cardNumber: "4000123456784342",
   },
   {
     id: "tx-1027",
@@ -862,7 +893,7 @@ export const transactionsData: Transaction[] = [
     paymentCode: "221",
     transactionTime: "2026-04-22T08:00:00Z",
     status: "izvrsena",
-    cardNumber: "5355460035171420",
+    cardNumber: "4000123456784342",
   },
   {
     id: "tx-1036",
@@ -879,7 +910,7 @@ export const transactionsData: Transaction[] = [
     paymentCode: "221",
     transactionTime: "2026-04-21T08:00:00Z",
     status: "izvrsena",
-    cardNumber: "5355460035171420",
+    cardNumber: "4000123456784342",
   },
   {
     id: "tx-1037",
@@ -1032,7 +1063,7 @@ export const transactionsData: Transaction[] = [
     paymentCode: "221",
     transactionTime: "2026-04-10T14:45:00Z",
     status: "odbijena",
-    cardNumber: "5355460035171420",
+    cardNumber: "4000123456784342",
   },
   {
     id: "tx-1046",
