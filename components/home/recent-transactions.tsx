@@ -27,6 +27,41 @@ export default function RecentTransactions({
           });
           const formattedAmount = formatter.format(transaction.amount);
 
+          const now = new Date();
+          const monthStrings = [
+            "Januar",
+            "Februar",
+            "Mart",
+            "April",
+            "Maj",
+            "Jun",
+            "Jul",
+            "Avgust",
+            "Septembar",
+            "Oktobar",
+          ];
+
+          const transactionDate = new Date(transaction.transactionTime);
+          const day = transactionDate.getDate();
+          const month = transactionDate.getMonth();
+          const diff = now.getDate() - day;
+          const date =
+            diff == 0
+              ? "Danas"
+              : diff === 1
+                ? "Juce"
+                : day.toString().padStart(2, "0") + ". " + monthStrings[month];
+
+          const hours = transactionDate.getHours(); // 12
+          const minutes = transactionDate.getMinutes(); // 25
+
+          const time =
+            hours.toString().padStart(2, "0") +
+            ":" +
+            minutes.toString().padStart(2, "0");
+
+          const dateTimeString = date + " " + time;
+
           return (
             <View key={transaction.id} className="flex-row items-center w-full">
               <View className="flex justify-center items-center w-[55px] h-[55px] rounded-full bg-gray-200">
@@ -43,7 +78,7 @@ export default function RecentTransactions({
                     : transaction.senderName}
                 </Text>
                 <Text className="font-inria-light text-cgray">
-                  {transaction.transactionTime.slice(0, 5)}
+                  {dateTimeString}
                 </Text>
               </View>
               <View className="items-end justify-between">

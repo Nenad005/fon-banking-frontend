@@ -17,8 +17,8 @@ export default function HomePage() {
       <CardsSwiper accountsData={accountsData}></CardsSwiper>
       <ScrollView>
         <View className="flex-1 px-5 w-full ">
-          <QuickPayments className="pb-9" />
-          <RecentTransactions className="pb-9" />
+          <QuickPayments className="pb-10" />
+          <RecentTransactions className="pb-10" />
           <ExhangeRates base="RSD" quoutes={["USD", "EUR", "CHF"]} />
         </View>
       </ScrollView>
