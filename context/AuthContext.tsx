@@ -1,125 +1,272 @@
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import * as SecureStore from 'expo-secure-store';
-import axios from 'axios';
+import axios, {create as axiosCreate, isAxiosError} from "axios";
+import * as SecureStore from "expo-secure-store";
+import * as Application from 'expo-application';
+import * as Device from 'expo-device';
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { Platform } from "react-native";
 
-const API_URL = 'http://localhost:8000/api';
-const DEVICE_ID_KEY = 'fon_bank_device_id';
+export const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+
+const DEVICE_ID_KEY = "fon_bank_device_id";
+const PIN_SETUP_KEY = 'pin_is_setup';
+
+type ApiStatus = "success" | "error";
+type UserStatus = "pending_activation" | "pending_pin" | "active" | "blocked";
+
+type ApiErrors = Record<string, string[]> | null;
+
+interface ApiResponse<TData> {
+  status: ApiStatus;
+  message: string;
+  data: TData | null;
+  errors: ApiErrors;
+}
+
+interface ActivateData {
+  user_status: UserStatus;
+  message: string;
+}
+
+interface AuthData {
+  status: string;
+  message: string;
+  token: string;
+}
+
+type ActivateResponse = ApiResponse<ActivateData>;
+type AuthResponse = ApiResponse<AuthData>;
+
+interface ApiErrorResponse {
+  message?: string;
+  status?: ApiStatus;
+  data?: null;
+  errors?: Record<string, string[]> | null;
+}
+
+type AuthStatus = 'error' | 'loading' | 'pending_activation' | 'pending_pin' | 'pending_session' | 'authenticated';
 
 interface AuthContextType {
-  isActivated: boolean;
-  isLoggedIn: boolean;
-  isLoading: boolean; // Za Splash screen dok proveravamo SecureStore
-  activateAccount: (qrCodeData: string) => Promise<void>;
-  setupPin: (pin: string) => Promise<void>;
+  authStatus: AuthStatus;
+  sessionToken: string | null;
+  activateAccount: (qrCodeData: string) => Promise<ActivateResponse>;
+  setupPin: (pin: string) => Promise<AuthResponse>;
   login: (pin: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+export const api = axiosCreate({
+  baseURL: API_BASE_URL,
+  headers: {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  },
+});
+
+const createDeviceIdentifier = async () => {
+  if (Platform.OS === 'android') return Application.getAndroidId();
+  if (Platform.OS === 'ios') {
+    let iosId = await Application.getIosIdForVendorAsync();
+    if (iosId === null) return globalThis.crypto?.randomUUID();
+    return iosId
+  }
+  else {
+    return globalThis.crypto?.randomUUID();
+  }
+};
+
+const getDeviceName = () => {
+  return Device.deviceName ?? 'Unknown Device'
+};
+
+const getApiErrorMessage = (error: unknown) => {
+  if (isAxiosError(error)) {
+    const data = error.response?.data as ApiErrorResponse | undefined;
+    const firstValidationError = data?.errors
+      ? Object.values(data.errors).flat()[0]
+      : undefined;
+
+    return firstValidationError ?? data?.message ?? error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Došlo je do neočekivane greške.";
+};
+
+const getRequiredResponseData = <TData,>(response: ApiResponse<TData>) => {
+  if (!response.data) {
+    throw new Error(response.message || "API odgovor ne sadrži podatke.");
+  }
+
+  return response.data;
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isActivated, setIsActivated] = useState<boolean>(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  
-  // Čuvamo token samo u memoriji, gubi se gašenjem aplikacije
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
   const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  // 1. Provera stanja pri pokretanju aplikacije
   useEffect(() => {
-    const checkActivationStatus = async () => {
+    const checkAuthStatus = async () => {
       try {
-        const storedDeviceId = await SecureStore.getItemAsync(DEVICE_ID_KEY);
-        if (storedDeviceId) {
-          setIsActivated(true);
+        const [deviceId, isPinSetup] = await Promise.all([
+          SecureStore.getItemAsync(DEVICE_ID_KEY),
+          SecureStore.getItemAsync(PIN_SETUP_KEY)
+        ]);
+
+        if (!deviceId) {
+          setAuthStatus('pending_activation');
+        } else if (deviceId && !isPinSetup) {
+          setAuthStatus('pending_pin');
+        } else {
+          setAuthStatus('pending_session');
         }
       } catch (error) {
-        console.error('Greška pri čitanju iz SecureStore-a:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('Kritična greška pri čitanju SecureStore-a:', error);
+        setAuthStatus('error'); 
       }
     };
 
-    checkActivationStatus();
+    checkAuthStatus();
   }, []);
 
-  // 2. Faza aktivacije: Skeniranje QR koda
-  const activateAccount = async (qrCodeData: string) => {
-    // Ovde parsiraš QR kod i šalješ na backend
-    // const response = await axios.post(`${API_URL}/activate`, { qr_data: qrCodeData });
-    
-    // Simulacija uspeha (ukloni u produkciji):
-    console.log("QR kod validan, prelazak na PIN setup.");
-  };
+  const authContextValue = useMemo<AuthContextType>(() => {
+    const getOrCreateDeviceIdentifier = async () => {
+      const storedDeviceId = await SecureStore.getItemAsync(DEVICE_ID_KEY);
 
-  // 3. Faza aktivacije: Postavljanje PIN-a i generisanje Device ID-a
-  const setupPin = async (pin: string) => {
-    // Generiši nasumičan Device ID (ili koristi expo-application)
-    const newDeviceId = crypto.randomUUID(); 
-    
-    // const response = await axios.post(`${API_URL}/setup-pin`, { pin, device_id: newDeviceId });
-    
-    // Ako backend vrati 200 OK:
-    await SecureStore.setItemAsync(DEVICE_ID_KEY, newDeviceId);
-    setIsActivated(true);
-  };
-
-  // 4. Svakodnevno logovanje (Unos PIN-a)
-  const login = async (pin: string): Promise<boolean> => {
-    try {
-      const deviceId = await SecureStore.getItemAsync(DEVICE_ID_KEY);
-      
-      if (!deviceId) throw new Error("Uređaj nije aktiviran.");
-
-      const response = await axios.post(`${API_URL}/login`, {
-        device_id: deviceId,
-        pin: pin
-      });
-
-      // Backend (Sanctum) vraća plain-text token za sesiju
-      const token = response.data.token; 
-      
-      // Upisujemo token u state i konfigurišemo Axios za sve buduće zahteve
-      setSessionToken(token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setIsLoggedIn(true);
-      
-      return true;
-    } catch (error) {
-      console.error('Login neuspešan:', error);
-      return false;
-    }
-  };
-
-  // 5. Izlogovanje i uništavanje sesije
-  const logout = async () => {
-    try {
-      if (sessionToken) {
-        // Obavesti backend da uništi Sanctum token
-        await axios.post(`${API_URL}/logout`);
+      if (storedDeviceId) {
+        return storedDeviceId;
       }
-    } catch (error) {
-      console.error('Greška pri logout-u na serveru', error);
-    } finally {
-      // Bez obzira na API odgovor, brišemo sesiju na klijentu
+
+      return createDeviceIdentifier();
+    };
+
+    const setSession = (authData: AuthData) => {
+      setSessionToken(authData.token);
+      setAuthStatus('authenticated')
+      api.defaults.headers.common.Authorization = `Bearer ${authData.token}`;
+      axios.defaults.headers.common.Authorization = `Bearer ${authData.token}`;
+    };
+
+    const clearSession = () => {
       setSessionToken(null);
-      delete axios.defaults.headers.common['Authorization'];
-      setIsLoggedIn(false);
-    }
-  };
+      setAuthStatus('pending_session')
+      delete api.defaults.headers.common.Authorization;
+      delete axios.defaults.headers.common.Authorization;
+    };
+
+    const activateAccount = async ( qrCodeData: string ): Promise<ActivateResponse> => {
+      try {
+        const deviceIdentifier = await getOrCreateDeviceIdentifier();
+        const response = await api.post<ActivateResponse>("/activate", {
+          code: qrCodeData,
+          device_identifier: deviceIdentifier,
+          device_name: getDeviceName(),
+        });
+
+        const activateData = getRequiredResponseData(response.data);
+
+        await SecureStore.setItemAsync(DEVICE_ID_KEY, deviceIdentifier);
+        const user_status = activateData.user_status;
+        if (user_status === 'pending_pin') setAuthStatus('pending_pin');
+        else if (user_status === 'active') setAuthStatus('pending_session');
+        else setAuthStatus('pending_activation')
+        console.log('AKTIVACIJA : ', activateData.user_status, activateData.message)
+
+        return response.data;
+      } catch (error) {
+        throw new Error(getApiErrorMessage(error));
+      }
+    };
+
+    const setupPin = async (pin: string): Promise<AuthResponse> => {
+      try {
+        const deviceIdentifier = await SecureStore.getItemAsync(DEVICE_ID_KEY);
+
+        if (!deviceIdentifier) {
+          setAuthStatus('pending_activation')
+          throw new Error("Uređaj nije aktiviran.");
+        }
+
+        const response = await api.post<AuthResponse>("/set_pin", {
+          device_identifier: deviceIdentifier,
+          pin,
+        });
+
+        const sessionData = getRequiredResponseData(response.data)
+
+        await SecureStore.setItemAsync('pin_is_setup', 'true');
+        setSession(sessionData);
+        console.log('PIN_SETUP : ', sessionData.status, sessionData.message)
+
+        return response.data;
+      } catch (error) {
+        setAuthStatus('pending_pin')
+        throw new Error(getApiErrorMessage(error));
+      }
+    };
+
+    const login = async (pin: string): Promise<boolean> => {
+      try {
+        const deviceIdentifier = await SecureStore.getItemAsync(DEVICE_ID_KEY);
+
+        if (!deviceIdentifier) {
+          setAuthStatus('pending_activation')
+          throw new Error("Uređaj nije aktiviran.");
+        }
+
+        const response = await api.post<AuthResponse>("/login", {
+          device_identifier: deviceIdentifier,
+          pin,
+        });
+
+        const sessionData = getRequiredResponseData(response.data)
+        setSession(sessionData);
+        console.log('LOGIN : ', sessionData.status, sessionData.message)
+
+        return true;
+      } catch (error) {
+        console.error("Login neuspešan:", getApiErrorMessage(error));
+        clearSession();
+        return false;
+      }
+    };
+
+    const logout = async () => {
+      try {
+        if (sessionToken) {
+          await api.post<ApiResponse<null>>("/logout");
+        }
+      } catch (error) {
+        console.error("Greška pri logout-u :", getApiErrorMessage(error));
+      } finally {
+        clearSession();
+      }
+    };
+
+    return {
+      authStatus,
+      sessionToken,
+      activateAccount,
+      setupPin,
+      login,
+      logout,
+    };
+  }, [authStatus, sessionToken]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        isActivated,
-        isLoggedIn,
-        isLoading,
-        activateAccount,
-        setupPin,
-        login,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={authContextValue}>
       {children}
     </AuthContext.Provider>
   );
@@ -127,8 +274,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
+
   if (context === undefined) {
-    throw new Error('useAuth mora biti korišćen unutar AuthProvider-a');
+    throw new Error("useAuth mora biti korišćen unutar AuthProvider-a");
   }
+
   return context;
 };

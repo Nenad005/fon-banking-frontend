@@ -9,6 +9,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { cssInterop } from "nativewind";
 import { useEffect } from "react";
 import "../global.css";
+import { AuthProvider } from "@/context/AuthContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -80,24 +81,26 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack>
-      <Stack.Screen
-        name="index"
-        options={{ title: "FON Banka", headerShown: false }}
-      />
-      <Stack.Screen
-        name="(auth)/login"
-        options={{
-          title: "Uloguj se",
-          animation: "slide_from_right",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="(auth)/activation"
-        options={{ title: "Aktiviraj se" }}
-      />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
+    <AuthProvider>
+      <Stack>
+        <Stack.Screen
+          name="index"
+          options={{ title: "FON Banka", headerShown: false }}
+        />
+        <Stack.Screen
+          name="(auth)/login"
+          options={{
+            title: "Uloguj se",
+            animation: "slide_from_right",
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="(auth)/activation"
+          options={{ title: "Aktiviraj se" }}
+        />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </AuthProvider>
   );
 }
