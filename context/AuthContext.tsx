@@ -156,14 +156,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSessionToken(authData.token);
       setAuthStatus('authenticated')
       api.defaults.headers.common.Authorization = `Bearer ${authData.token}`;
-      axios.defaults.headers.common.Authorization = `Bearer ${authData.token}`;
     };
 
     const clearSession = () => {
       setSessionToken(null);
       setAuthStatus('pending_session')
       delete api.defaults.headers.common.Authorization;
-      delete axios.defaults.headers.common.Authorization;
     };
 
     const activateAccount = async ( qrCodeData: string ): Promise<ActivateResponse> => {
