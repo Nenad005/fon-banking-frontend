@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import { Platform } from "react-native";
+import { isEnabled } from "react-native/Libraries/Performance/Systrace";
 
 export const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
@@ -55,6 +56,11 @@ type AuthStatus = 'error' | 'loading' | 'pending_activation' | 'pending_pin' | '
 
 interface AuthContextType {
   authStatus: AuthStatus;
+  isError: boolean;
+  isLoading: boolean;
+  isActivated: boolean;
+  isRegistered: boolean;
+  isAuthenticated: boolean;
   sessionToken: string | null;
   activateAccount: (qrCodeData: string) => Promise<ActivateResponse>;
   setupPin: (pin: string) => Promise<AuthResponse>;
@@ -116,6 +122,11 @@ const getRequiredResponseData = <TData,>(response: ApiResponse<TData>) => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
   const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const isError = authStatus === 'error';
+  const isLoading = authStatus === 'loading';
+  const isActivated = authStatus === 'pending_pin' || authStatus === 'pending_session';
+  const isRegistered = authStatus === 'pending_session';
+  const isAuthenticated = authStatus === 'authenticated';
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -255,13 +266,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return {
       authStatus,
-      sessionToken,
+      isError,
+      isLoading,
+      isActivated,
+      isRegistered,
+      isAuthenticated,
       activateAccount,
       setupPin,
       login,
       logout,
     };
-  }, [authStatus, sessionToken]);
+  }, [authStatus, isError, isLoading, isActivated, isRegistered, isAuthenticated, sessionToken]);
 
   return (
     <AuthContext.Provider value={authContextValue}>
