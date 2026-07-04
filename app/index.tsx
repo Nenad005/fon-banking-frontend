@@ -2,11 +2,12 @@ import Entypo from "@expo/vector-icons/Entypo";
 import { useIsFocused } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Link } from "expo-router";
+import { Link, RelativePathString } from "expo-router";
 import { cssInterop } from "nativewind";
 import { Pressable, StatusBar, StyleSheet, View } from "react-native";
 import colors from "tailwindcss/colors";
 import { Text } from "../components/text";
+import { useAuth } from "@/context/AuthContext";
 
 cssInterop(LinearGradient, {
   className: "style",
@@ -14,6 +15,22 @@ cssInterop(LinearGradient, {
 
 export default function Index() {
   const isFocused = useIsFocused();
+  const { authStatus } = useAuth();
+
+  const primaryAction = (() => {
+    switch (authStatus) {
+      case "pending_activation":
+        return { href: "/activation", label: "Aktiviraj nalog" };
+      case "pending_pin":
+        return { href: "/pin-setup", label: "Postavi PIN" };
+      case "pending_session":
+        return { href: "/login", label: "Uloguj se" };
+      case "authenticated":
+        return { href: "/home", label: "Uđi u aplikaciju" };
+      default:
+        return { href: "/login", label: "Uloguj se" };
+    }
+  })();
 
   return (
     <View className="flex-1 relative bg-green-200">
@@ -68,10 +85,10 @@ export default function Index() {
           </View>
         </View>
         <View id="bottom" className="flex gap-4">
-          <Link href={"/login"} push asChild className="bg-white rounded-lg">
+          <Link href={primaryAction.href as RelativePathString} push asChild className="bg-white rounded-lg">
             <Pressable className="w-full py-3">
               <Text className="text-center text-xl font-inria-bold ">
-                Uloguj se
+                {primaryAction.label}
               </Text>
             </Pressable>
           </Link>
@@ -93,9 +110,6 @@ export default function Index() {
           </View>
         </View>
       </View>
-      {/* <Link href={"/activation"} push asChild>
-        <Button title="Aktiviraj nalog"></Button>
-      </Link> */}
     </View>
   );
 }

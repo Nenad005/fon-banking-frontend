@@ -1,14 +1,39 @@
 import PinInput from "@/components/login/pin-input";
 import { Text } from "@/components/text";
+import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import Entypo from "@expo/vector-icons/Entypo";
-import { Link, router } from "expo-router";
+import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 
 export default function LoginPage() {
+  const { login } = useAuth();
   const [code, setCode] = useState<string>("");
   const [isCodeReady, setIsCodeReady] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleLogin = async () => {
+    if (!isCodeReady || isSubmitting) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setErrorMessage(null);
+
+      const isAuthenticated = await login(code);
+
+      if (isAuthenticated) {
+        router.replace("/home");
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Prijava nije uspela.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <View className="flex-1 pt-14 px-5 pb-7 justify-between">
@@ -30,22 +55,30 @@ export default function LoginPage() {
           setCode={setCode}
           isCodeReady={isCodeReady}
           setIsCodeReady={setIsCodeReady}
-        ></PinInput>
+        />
+        {errorMessage ? (
+          <Text className="text-red-600 font-inria-regular text-center mt-4">
+            {errorMessage}
+          </Text>
+        ) : null}
       </View>
       <View className="">
-        <Link href={"/home"} dismissTo asChild>
-          <Pressable
-            className={cn(
-              "bg-ccyan py-3 rounded-xl",
-              !isCodeReady && "bg-ccyan/50",
-            )}
-            // disabled={!isCodeReady}
-          >
+        <Pressable
+          onPress={handleLogin}
+          disabled={!isCodeReady || isSubmitting}
+          className={cn(
+            "bg-ccyan py-3 rounded-xl items-center",
+            (!isCodeReady || isSubmitting) && "bg-ccyan/50",
+          )}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="white" />
+          ) : (
             <Text className="text-center text-xl text-white font-inria-bold ">
-              Dalje
+              Uloguj se
             </Text>
-          </Pressable>
-        </Link>
+          )}
+        </Pressable>
       </View>
     </View>
   );

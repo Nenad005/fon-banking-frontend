@@ -1,4 +1,4 @@
-import axios, {create as axiosCreate, isAxiosError} from "axios";
+import { create as axiosCreate, isAxiosError } from "axios";
 import * as SecureStore from "expo-secure-store";
 import * as Application from 'expo-application';
 import * as Device from 'expo-device';
@@ -11,10 +11,9 @@ import {
   useState,
 } from "react";
 import { Platform } from "react-native";
-import { isEnabled } from "react-native/Libraries/Performance/Systrace";
 
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+  process.env.EXPO_PUBLIC_API_URL ?? "http://192.168.0.26:8000/api/v1";
 
 const DEVICE_ID_KEY = "fon_bank_device_id";
 const PIN_SETUP_KEY = 'pin_is_setup';
@@ -22,28 +21,23 @@ const PIN_SETUP_KEY = 'pin_is_setup';
 type ApiStatus = "success" | "error";
 type UserStatus = "pending_activation" | "pending_pin" | "active" | "blocked";
 
-type ApiErrors = Record<string, string[]> | null;
-
-interface ApiResponse<TData> {
-  status: ApiStatus;
-  message: string;
-  data: TData | null;
-  errors: ApiErrors;
-}
-
 interface ActivateData {
   user_status: UserStatus;
   message: string;
 }
 
 interface AuthData {
-  status: string;
+  status: ApiStatus;
   message: string;
   token: string;
 }
 
-type ActivateResponse = ApiResponse<ActivateData>;
-type AuthResponse = ApiResponse<AuthData>;
+type ActivateResponse = ActivateData;
+type AuthResponse = AuthData;
+type LogoutResponse = {
+  status: ApiStatus;
+  message: string;
+};
 
 interface ApiErrorResponse {
   message?: string;
@@ -66,6 +60,7 @@ interface AuthContextType {
   setupPin: (pin: string) => Promise<AuthResponse>;
   login: (pin: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  clearSecureStore: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -111,14 +106,6 @@ const getApiErrorMessage = (error: unknown) => {
   return "Došlo je do neočekivane greške.";
 };
 
-const getRequiredResponseData = <TData,>(response: ApiResponse<TData>) => {
-  if (!response.data) {
-    throw new Error(response.message || "API odgovor ne sadrži podatke.");
-  }
-
-  return response.data;
-};
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
   const [sessionToken, setSessionToken] = useState<string | null>(null);
@@ -145,7 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error('Kritična greška pri čitanju SecureStore-a:', error);
-        setAuthStatus('error'); 
+        setAuthStatus('error');
       }
     };
 
@@ -175,25 +162,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       delete api.defaults.headers.common.Authorization;
     };
 
-    const activateAccount = async ( qrCodeData: string ): Promise<ActivateResponse> => {
+    const activateAccount = async (qrCodeData: string): Promise<ActivateResponse> => {
+      console.log(authStatus)
       try {
         const deviceIdentifier = await getOrCreateDeviceIdentifier();
+        console.log(deviceIdentifier, qrCodeData);
         const response = await api.post<ActivateResponse>("/activate", {
           code: qrCodeData,
           device_identifier: deviceIdentifier,
           device_name: getDeviceName(),
         });
-
-        const activateData = getRequiredResponseData(response.data);
+        console.log("request uspesan")
 
         await SecureStore.setItemAsync(DEVICE_ID_KEY, deviceIdentifier);
-        const user_status = activateData.user_status;
-        if (user_status === 'pending_pin') setAuthStatus('pending_pin');
-        else if (user_status === 'active') setAuthStatus('pending_session');
-        else setAuthStatus('pending_activation')
+        const activateData = response.data;
+        console.log("postavio")
+
+        if (activateData.user_status === 'pending_pin') {
+          setAuthStatus('pending_pin');
+        } else {
+          setAuthStatus('pending_session');
+        }
+
         console.log('AKTIVACIJA : ', activateData.user_status, activateData.message)
 
-        return response.data;
+        return activateData;
       } catch (error) {
         throw new Error(getApiErrorMessage(error));
       }
@@ -213,13 +206,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           pin,
         });
 
-        const sessionData = getRequiredResponseData(response.data)
+        const sessionData = response.data;
 
-        await SecureStore.setItemAsync('pin_is_setup', 'true');
+        await SecureStore.setItemAsync(PIN_SETUP_KEY, 'true');
         setSession(sessionData);
         console.log('PIN_SETUP : ', sessionData.status, sessionData.message)
 
-        return response.data;
+        return sessionData;
       } catch (error) {
         setAuthStatus('pending_pin')
         throw new Error(getApiErrorMessage(error));
@@ -240,27 +233,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           pin,
         });
 
-        const sessionData = getRequiredResponseData(response.data)
+        const sessionData = response.data;
         setSession(sessionData);
         console.log('LOGIN : ', sessionData.status, sessionData.message)
 
         return true;
       } catch (error) {
-        console.error("Login neuspešan:", getApiErrorMessage(error));
         clearSession();
-        return false;
+        throw new Error(getApiErrorMessage(error));
+        // return false;
       }
     };
 
     const logout = async () => {
       try {
         if (sessionToken) {
-          await api.post<ApiResponse<null>>("/logout");
+          await api.post<LogoutResponse>("/logout");
         }
       } catch (error) {
-        console.error("Greška pri logout-u :", getApiErrorMessage(error));
+        throw new Error(getApiErrorMessage(error));
       } finally {
         clearSession();
+      }
+    };
+
+    const clearSecureStore = async () => {
+      try {
+        await Promise.all([
+          SecureStore.deleteItemAsync(DEVICE_ID_KEY),
+          SecureStore.deleteItemAsync(PIN_SETUP_KEY),
+        ]);
+      } catch (error) {
+        console.error("Greška pri brisanju SecureStore-a:", getApiErrorMessage(error));
+      } finally {
+        setSessionToken(null);
+        setAuthStatus('pending_activation');
+        delete api.defaults.headers.common.Authorization;
       }
     };
 
@@ -271,10 +279,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isActivated,
       isRegistered,
       isAuthenticated,
+      sessionToken,
       activateAccount,
       setupPin,
       login,
       logout,
+      clearSecureStore,
     };
   }, [authStatus, isError, isLoading, isActivated, isRegistered, isAuthenticated, sessionToken]);
 
