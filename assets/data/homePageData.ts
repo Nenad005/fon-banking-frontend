@@ -103,7 +103,7 @@ export const cardsData: Card[] = [
   },
   {
     accountId: "EUR31-512572340004237267",
-    cardId: "4000123456784342",
+    cardId: "4000337056784342",
     cardType: "Visa",
     expireDate: "2027-05-12T12:00:00Z",
     ownerName: "Marko Nenadovic",
