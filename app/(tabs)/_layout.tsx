@@ -65,6 +65,7 @@ export default function TabsLayout() {
         name="transactions"
         options={{
           title: "Transakcije",
+          headerShown: false,
           tabBarIcon: ({ focused }) => (
             <Ionicons
               name="stats-chart-outline"
