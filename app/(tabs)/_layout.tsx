@@ -50,6 +50,7 @@ export default function TabsLayout() {
         name="payments"
         options={{
           title: "Placanja",
+          headerShown: false,
           tabBarIcon: ({ focused }) => (
             <MaterialIcons
               name="payments"
