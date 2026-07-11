@@ -1,4 +1,4 @@
-import { Account, Card } from "@/assets/data/homePageData";
+import { Account, Card } from "@/hooks/useBankingData";
 import { useRef, useState } from "react";
 import { View, ViewToken, ViewabilityConfigCallbackPair } from "react-native";
 import Animated, {
@@ -72,8 +72,8 @@ export default function CardsSwiper({
   const colorClassNames: ClassNameValue[] | undefined = accountsData
     ? accountsData.map(
         (account) =>
-          accountColorClassNamesDict[account.color]
-            ?.background as ClassNameValue,
+          (accountColorClassNamesDict[account.color]?.background ??
+            accountColorClassNamesDict.magenta.background) as ClassNameValue,
       )
     : cardsData
       ? cardsData.map(

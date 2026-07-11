@@ -1,4 +1,4 @@
-import { Account } from "@/assets/data/homePageData";
+import { Account } from "@/hooks/useBankingData";
 import { Text } from "@/components/text";
 import { cn } from "@/lib/utils";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -102,14 +102,15 @@ export default function AccountItem({
         key={account.accountId}
         className={cn(
           "p-4 rounded-3xl justify-between aspect-[1.6] overflow-hidden",
-          colorClassNames[account.color].background,
+          (colorClassNames[account.color] ?? colorClassNames.magenta)
+            .background,
         )}
       >
         <View className="absolute bottom-[-10px] right-[-30px] rotate-[20deg]">
           <FontAwesome
             name="bank"
             size={120}
-            className={colorClassNames[account.color].icon}
+            className={(colorClassNames[account.color] ?? colorClassNames.magenta).icon}
           />
         </View>
         <View className="flex-row justify-between">

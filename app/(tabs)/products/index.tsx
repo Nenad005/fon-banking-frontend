@@ -1,14 +1,14 @@
-import { Account, accountsData, cardsData } from "@/assets/data/homePageData";
 import ContentHeader from "@/components/content-header";
 import CardsSwiper from "@/components/home/accounts/cards-swiper";
 import { Text } from "@/components/text";
+import { Account, useBankingData } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Clipboard from "expo-clipboard";
 import LottieView from "lottie-react-native";
 import { useRef } from "react";
-import { Animated, Pressable, View } from "react-native";
+import { ActivityIndicator, Animated, Pressable, ScrollView, View } from "react-native";
 
 function AccountProductItem({
   account,
@@ -27,6 +27,7 @@ function AccountProductItem({
       icon: "text-ctirquise",
     },
   };
+  const accountColor = colorClassNames[account.color] ?? colorClassNames.magenta;
 
   const formatter = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
@@ -54,10 +55,8 @@ function AccountProductItem({
   const animationRef = useRef<LottieView>(null);
 
   const handleCopyPress = async () => {
-    console.log("poceo");
     animationRef.current?.play();
     await Clipboard.setStringAsync(account.accountId);
-    console.log("zavrsio");
   };
 
   return (
@@ -66,14 +65,14 @@ function AccountProductItem({
         key={account.accountId}
         className={cn(
           "p-4 rounded-3xl aspect-[2.7] overflow-hidden",
-          colorClassNames[account.color].background,
+          accountColor.background,
         )}
       >
         <View className="absolute bottom-[-10px] right-[-30px] rotate-[20deg]">
           <FontAwesome
             name="bank"
             size={120}
-            className={colorClassNames[account.color].icon}
+            className={accountColor.icon}
           />
         </View>
         <View className="flex-row justify-between">
@@ -95,7 +94,7 @@ function AccountProductItem({
           <Pressable className="h-fit" onPress={handleCopyPress}>
             <LottieView
               ref={animationRef}
-              source={require("@/assets/lottie/Checkmark.json")} // Your downloaded Lottie file
+              source={require("@/assets/lottie/Checkmark.json")}
               autoPlay={false}
               loop={false}
               style={{ width: 25, height: 25 }}
@@ -108,29 +107,52 @@ function AccountProductItem({
 }
 
 export default function ProductsPage() {
+  const { accounts, cards, isLoading, errorMessage } = useBankingData();
+
   return (
     <View className="flex-1 pt-14">
       <ContentHeader
         title="Vasi proizvodi"
-        subtitle="Pregled vasih racuna i katica"
+        subtitle="Pregled vasih racuna i kartica"
         className="px-5 border-0 pb-7"
       ></ContentHeader>
-      <Text className="text-cgray text-2xl pb-5 px-5">Vase kartice</Text>
-      <CardsSwiper cardsData={cardsData}></CardsSwiper>
-      <View className="px-5">
-        <Text className="text-cgray text-2xl pb-5">Vasi racuni</Text>
-        <View className="gap-5">
-          {accountsData.map((account, index) => {
-            return (
-              <AccountProductItem
-                account={account}
-                index={index}
-                key={"accountProduct-" + account.accountId}
-              ></AccountProductItem>
-            );
-          })}
+      <ScrollView>
+        {errorMessage ? (
+          <Text className="text-red-600 font-inria-regular px-5 pb-5">
+            {errorMessage}
+          </Text>
+        ) : null}
+        {isLoading && accounts.length === 0 && cards.length === 0 ? (
+          <View className="h-[220px] justify-center items-center">
+            <ActivityIndicator />
+          </View>
+        ) : null}
+        {cards.length > 0 ? (
+          <>
+            <Text className="text-cgray text-2xl pb-5 px-5">Vase kartice</Text>
+            <CardsSwiper cardsData={cards}></CardsSwiper>
+          </>
+        ) : null}
+        <View className="px-5 pb-10">
+          <Text className="text-cgray text-2xl pb-5">Vasi racuni</Text>
+          {!isLoading && accounts.length === 0 ? (
+            <Text className="text-cgray font-inria-light">
+              Nema racuna za prikaz.
+            </Text>
+          ) : null}
+          <View className="gap-5">
+            {accounts.map((account, index) => {
+              return (
+                <AccountProductItem
+                  account={account}
+                  index={index}
+                  key={"accountProduct-" + account.accountId}
+                ></AccountProductItem>
+              );
+            })}
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }

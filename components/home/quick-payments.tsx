@@ -1,14 +1,48 @@
-import { quickPayData } from "@/assets/data/homePageData";
 import { Text } from "@/components/text";
+import { Transaction } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
+import {
+  getCounterpartyAccountId,
+  getTransactionIconName,
+} from "@/lib/transaction-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useMemo } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
 export default function QuickPayments({
   className = "",
+  transactions,
+  accountIds,
 }: {
   className?: string;
+  transactions: Transaction[];
+  accountIds: Set<string>;
 }) {
+  const quickPayData = useMemo(() => {
+    const entries = new Map<
+      string,
+      { name: string; icon: ReturnType<typeof getTransactionIconName> }
+    >();
+
+    transactions.forEach((transaction) => {
+      if (!accountIds.has(transaction.senderAccount)) return;
+
+      const counterpartyAccountId = getCounterpartyAccountId(
+        transaction,
+        accountIds,
+      );
+
+      if (entries.has(counterpartyAccountId)) return;
+
+      entries.set(counterpartyAccountId, {
+        name: transaction.recipientName,
+        icon: getTransactionIconName(transaction, accountIds),
+      });
+    });
+
+    return Array.from(entries.values()).slice(0, 8);
+  }, [accountIds, transactions]);
+
   return (
     <View className={cn("", className)}>
       <Text className="text-cgray text-2xl pb-5">Brza placanja</Text>
@@ -20,7 +54,7 @@ export default function QuickPayments({
                 <View className="flex justify-center">
                   <View className="flex justify-center items-center w-[55px] h-[55px] rounded-full bg-gray-200">
                     <Ionicons
-                      name={`${entry.icon}-outline`}
+                      name={entry.icon}
                       size={24}
                       className="text-cgray"
                     />

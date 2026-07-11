@@ -1,4 +1,4 @@
-import { Card } from "@/assets/data/homePageData";
+import { Card } from "@/hooks/useBankingData";
 import { Text } from "@/components/text";
 import { cn } from "@/lib/utils";
 import { Image } from "expo-image";
@@ -75,7 +75,6 @@ export default function CardItem({
     else hiddenCardDigits[j] += card.cardId[i];
   }
 
-  console.log(hiddenCardDigits);
 
   const expireDate = new Date(card.expireDate);
 
@@ -145,7 +144,7 @@ export default function CardItem({
               <Text className="text-white text-[15px]">/</Text>
               <Text className="text-white text-[15px]">{yearString}</Text>
             </View>
-            <Text className="text-white">Marko Nenadovic</Text>
+            <Text className="text-white">{card.ownerName}</Text>
           </View>
           {card.cardType === "Master" ? (
             <Image
