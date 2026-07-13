@@ -2,10 +2,12 @@ import QuickPayments from "@/components/home/quick-payments";
 import { Text } from "@/components/text";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { useBankingData } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
+import { openQrScanner } from "@/lib/qr-scanner-navigation";
 
 type PaymentFieldProps = {
   placeholder: string;
@@ -42,6 +44,7 @@ function PaymentField({
 }
 
 export default function PaymentsPage() {
+  const router = useRouter();
   const [recipientName, setRecipientName] = useState("");
   const [recipientAccount, setRecipientAccount] = useState("");
   const [model, setModel] = useState("");
@@ -73,7 +76,9 @@ export default function PaymentsPage() {
               Izaberi šablon ili popuni podatke ispod.
             </Text>
           </View>
-          <Pressable className="mt-1 h-[50px] w-[50px] items-center justify-center rounded-[18px] border-[3px] border-ctirquise">
+          <Pressable
+            className="mt-1 h-[50px] w-[50px] items-center justify-center rounded-[18px] border-[3px] border-ctirquise"
+            onPress={() => openQrScanner(router, setRecipientAccount)}>
             <MaterialIcons name="qr-code-scanner" size={30} color="#004B7C" />
           </Pressable>
         </View>

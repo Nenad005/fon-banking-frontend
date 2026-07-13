@@ -14,8 +14,8 @@ import { Platform } from "react-native";
 
 export const API_BASE_URL =
   // process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
-  // process.env.EXPO_PUBLIC_API_URL ?? "http://192.168.1.100:8000/api/v1";
-  process.env.EXPO_PUBLIC_API_URL ?? "http://10.172.245.145:8000/api/v1";
+  process.env.EXPO_PUBLIC_API_URL ?? "http://192.168.1.100:8000/api/v1";
+  // process.env.EXPO_PUBLIC_API_URL ?? "http://10.172.245.145:8000/api/v1";
 
 const DEVICE_ID_KEY = "fon_bank_device_id";
 const PIN_SETUP_KEY = 'pin_is_setup';
@@ -153,6 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const setSession = (authData: AuthData) => {
+      console.log(authData.token)
       setSessionToken(authData.token);
       setAuthStatus('authenticated')
       api.defaults.headers.common.Authorization = `Bearer ${authData.token}`;

@@ -8,6 +8,14 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, View, useWindowDimensions } from "react-native";
+import Animated, {
+  Extrapolation,
+  interpolate,
+  SharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 
 type QuickPaymentEntry = {
   accountId: string;
@@ -16,6 +24,37 @@ type QuickPaymentEntry = {
 };
 
 type QuickPaymentItem = QuickPaymentEntry | { isAddButton: true };
+
+function PageIndicator({
+  index,
+  activePage,
+  pageWidth,
+  scrollX,
+}: {
+  index: number;
+  activePage: number;
+  pageWidth: number;
+  scrollX: SharedValue<number>;
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    width: interpolate(
+      scrollX.value,
+      [(index - 1) * pageWidth, index * pageWidth, (index + 1) * pageWidth],
+      [8, 20, 8],
+      Extrapolation.CLAMP,
+    ),
+  }));
+
+  return (
+    <Animated.View
+      className={cn(
+        "h-2 w-2 rounded-full",
+        index === activePage ? "bg-ctirquise" : "bg-gray-300",
+      )}
+      style={animatedStyle}
+    />
+  );
+}
 
 export default function QuickPayments({
   className = "",
@@ -28,7 +67,14 @@ export default function QuickPayments({
 }) {
   const { width } = useWindowDimensions();
   const [activePage, setActivePage] = useState(0);
+  const scrollX = useSharedValue(0);
   const pageWidth = width - 40;
+
+  const onScrollHandle = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.value = event.contentOffset.x;
+    },
+  });
 
   const quickPayData = useMemo(() => {
     const entries = new Map<string, QuickPaymentEntry>();
@@ -66,13 +112,14 @@ export default function QuickPayments({
   return (
     <View className={cn("", className)}>
       <Text className="text-cgray text-2xl pb-5">Brza placanja</Text>
-      <FlatList
+      <Animated.FlatList
         data={quickPaymentPages}
         horizontal
         pagingEnabled
         directionalLockEnabled
         keyExtractor={(_, index) => `quick-payment-page-${index}`}
         showsHorizontalScrollIndicator={false}
+        onScroll={onScrollHandle}
         onMomentumScrollEnd={(event) => {
           setActivePage(Math.round(event.nativeEvent.contentOffset.x / pageWidth));
         }}
@@ -116,12 +163,12 @@ export default function QuickPayments({
       {quickPaymentPages.length > 1 && (
         <View className="flex-row justify-center gap-2 pt-3">
           {quickPaymentPages.map((_, index) => (
-            <View
+            <PageIndicator
               key={index}
-              className={cn(
-                "h-2 w-2 rounded-full",
-                index === activePage ? "bg-ctirquise" : "bg-gray-300",
-              )}
+              index={index}
+              activePage={activePage}
+              pageWidth={pageWidth}
+              scrollX={scrollX}
             />
           ))}
         </View>

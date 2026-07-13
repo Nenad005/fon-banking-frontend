@@ -8,6 +8,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { cssInterop } from "nativewind";
 import { useEffect } from "react";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import "../global.css";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import {
@@ -87,15 +88,22 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <GlobalWipeButton />
-      <RootNavigator />
-    </AuthProvider>
+    <KeyboardProvider>
+      <AuthProvider>
+        <GlobalWipeButton />
+        <RootNavigator />
+      </AuthProvider>
+    </KeyboardProvider>
   );
 }
 
 function GlobalWipeButton() {
   const { clearSecureStore } = useAuth();
+  const segments = useSegments();
+
+  if (String(segments[0]) === "qr-scanner") {
+    return null;
+  }
 
   const handleDataClear = () => {
     Alert.alert(
@@ -189,6 +197,10 @@ function RootNavigator() {
         options={{ title: "Postavi PIN", headerShown: false }}
       />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="qr-scanner"
+        options={{ headerShown: false, animation: "slide_from_right" }}
+      />
     </Stack>
   );
 }
