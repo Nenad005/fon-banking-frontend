@@ -4,7 +4,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useBankingData } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
 import { openQrScanner } from "@/lib/qr-scanner-navigation";
@@ -61,11 +62,12 @@ export default function PaymentsPage() {
 
   return (
     <View className="flex-1 bg-white pt-14">
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="px-5 pb-10"
+      <KeyboardAwareScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
       >
         <View className="flex-row items-start justify-between pb-11">
           <View>
@@ -192,7 +194,7 @@ export default function PaymentsPage() {
           <Text className="text-2xl font-inria-bold text-white">Plati</Text>
           <Ionicons name="arrow-forward" size={25} color="white" />
         </Pressable>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
