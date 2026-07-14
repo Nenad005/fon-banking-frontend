@@ -1,0 +1,1556 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A state management and data fetching proposal for the FON Banking Expo application."
+    />
+    <title>FON Banking — State &amp; Data Strategy</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #f7f7f4;
+        --muted: #aaa9b3;
+        --faint: #74737f;
+        --paper: #111014;
+        --panel: #18171d;
+        --panel-2: #201e25;
+        --line: rgba(255, 255, 255, 0.1);
+        --magenta: #ec2c88;
+        --magenta-soft: #ff76b7;
+        --cyan: #52d7d2;
+        --lime: #c8f06b;
+        --gold: #f5c66b;
+        --danger: #ff817e;
+        --radius: 22px;
+        --shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        background: var(--paper);
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(
+            circle at 84% 4%,
+            rgba(236, 44, 136, 0.13),
+            transparent 28rem
+          ),
+          radial-gradient(
+            circle at 8% 25%,
+            rgba(82, 215, 210, 0.07),
+            transparent 24rem
+          ),
+          var(--paper);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.65;
+      }
+
+      a {
+        color: inherit;
+      }
+      code,
+      pre {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+      code {
+        color: var(--cyan);
+      }
+
+      .shell {
+        width: min(1180px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      .topbar {
+        position: sticky;
+        z-index: 20;
+        top: 0;
+        border-bottom: 1px solid var(--line);
+        background: rgba(17, 16, 20, 0.8);
+        backdrop-filter: blur(18px);
+      }
+
+      .topbar-inner {
+        min-height: 66px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .brand-mark {
+        width: 31px;
+        height: 31px;
+        display: grid;
+        place-items: center;
+        border-radius: 9px;
+        color: white;
+        background: var(--magenta);
+        box-shadow: 0 8px 22px rgba(236, 44, 136, 0.35);
+      }
+
+      nav {
+        display: flex;
+        gap: 22px;
+      }
+      nav a {
+        color: var(--muted);
+        font-size: 0.83rem;
+        text-decoration: none;
+      }
+      nav a:hover {
+        color: var(--ink);
+      }
+
+      .hero {
+        padding: 96px 0 74px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0 0 22px;
+        color: var(--magenta-soft);
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--magenta);
+        box-shadow: 0 0 0 5px rgba(236, 44, 136, 0.12);
+      }
+
+      h1 {
+        max-width: 900px;
+        margin: 0;
+        font-size: clamp(3rem, 8vw, 6.7rem);
+        font-weight: 790;
+        letter-spacing: -0.07em;
+        line-height: 0.93;
+      }
+
+      h1 em {
+        color: var(--magenta);
+        font-style: normal;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.6fr) minmax(260px, 0.65fr);
+        gap: 64px;
+        align-items: end;
+        margin-top: 52px;
+      }
+
+      .lede {
+        max-width: 720px;
+        margin: 0;
+        color: #d5d4d9;
+        font-size: clamp(1.1rem, 2vw, 1.35rem);
+      }
+
+      .verdict {
+        padding-left: 22px;
+        border-left: 2px solid var(--magenta);
+      }
+
+      .verdict b {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--magenta-soft);
+        font-size: 0.78rem;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+
+      .verdict span {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      main {
+        padding: 74px 0 110px;
+      }
+      section {
+        scroll-margin-top: 90px;
+        margin: 0 0 100px;
+      }
+
+      .section-head {
+        display: grid;
+        grid-template-columns: 120px minmax(0, 1fr);
+        gap: 34px;
+        margin-bottom: 34px;
+      }
+
+      .section-num {
+        padding-top: 7px;
+        color: var(--faint);
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 0.8rem;
+      }
+
+      h2 {
+        margin: 0 0 10px;
+        font-size: clamp(2rem, 4vw, 3.6rem);
+        line-height: 1.05;
+        letter-spacing: -0.045em;
+      }
+
+      .section-head p {
+        max-width: 720px;
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .recommendation {
+        position: relative;
+        overflow: hidden;
+        padding: 38px;
+        border: 1px solid rgba(236, 44, 136, 0.28);
+        border-radius: var(--radius);
+        background: linear-gradient(
+          135deg,
+          rgba(236, 44, 136, 0.12),
+          rgba(24, 23, 29, 0.94) 45%
+        );
+        box-shadow: var(--shadow);
+      }
+
+      .recommendation::after {
+        content: "YES";
+        position: absolute;
+        right: -8px;
+        bottom: -49px;
+        color: rgba(255, 255, 255, 0.025);
+        font-size: 11rem;
+        font-weight: 900;
+        letter-spacing: -0.08em;
+        line-height: 1;
+        pointer-events: none;
+      }
+
+      .recommendation h3 {
+        max-width: 720px;
+        margin: 0 0 14px;
+        font-size: 1.55rem;
+      }
+      .recommendation p {
+        max-width: 800px;
+        margin: 0;
+        color: #cfced5;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 24px;
+      }
+      .pill {
+        padding: 7px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: #dddce1;
+        background: rgba(0, 0, 0, 0.18);
+        font-size: 0.78rem;
+      }
+
+      .ownership-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      .owner-card {
+        min-height: 330px;
+        padding: 27px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+      }
+
+      .owner-card.query {
+        border-top: 3px solid var(--magenta);
+      }
+      .owner-card.store {
+        border-top: 3px solid var(--cyan);
+      }
+      .owner-card.local {
+        border-top: 3px solid var(--lime);
+      }
+
+      .owner-tag {
+        display: inline-block;
+        margin-bottom: 21px;
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 0.69rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .query .owner-tag {
+        color: var(--magenta-soft);
+      }
+      .store .owner-tag {
+        color: var(--cyan);
+      }
+      .local .owner-tag {
+        color: var(--lime);
+      }
+      .owner-card h3 {
+        margin: 0 0 10px;
+        font-size: 1.32rem;
+      }
+      .owner-card > p {
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .owner-card ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .owner-card li {
+        position: relative;
+        padding: 8px 0 8px 19px;
+        border-top: 1px solid var(--line);
+        color: #d6d5da;
+        font-size: 0.88rem;
+      }
+      .owner-card li::before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: var(--faint);
+      }
+
+      .rule {
+        margin-top: 18px;
+        padding: 20px 24px;
+        border-radius: 14px;
+        color: #d9d8dd;
+        background: var(--panel-2);
+        font-size: 0.95rem;
+      }
+      .rule strong {
+        color: var(--gold);
+      }
+
+      .architecture {
+        padding: 36px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr 48px 1.05fr 48px 1fr;
+        align-items: stretch;
+        gap: 10px;
+      }
+
+      .flow-node {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 180px;
+        padding: 23px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #131217;
+      }
+      .flow-node small {
+        color: var(--faint);
+        font-family: monospace;
+      }
+      .flow-node h3 {
+        margin: 20px 0 8px;
+        font-size: 1.12rem;
+      }
+      .flow-node p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+      .flow-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--magenta-soft);
+        font-size: 1.45rem;
+      }
+
+      .split-note {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .split-note div {
+        padding: 19px 22px;
+        border-radius: 14px;
+        background: var(--panel-2);
+        color: var(--muted);
+        font-size: 0.87rem;
+      }
+      .split-note b {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--ink);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 760px;
+        background: var(--panel);
+      }
+      th,
+      td {
+        padding: 18px 20px;
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        color: var(--faint);
+        font-size: 0.69rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+      td {
+        color: #d4d3d8;
+        font-size: 0.9rem;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      td:first-child {
+        color: var(--ink);
+        font-weight: 720;
+      }
+      .yes {
+        color: var(--lime);
+      }
+      .no {
+        color: var(--danger);
+      }
+
+      .code-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .code-card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #0c0c0f;
+      }
+      .code-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 13px 17px;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        background: var(--panel);
+        font-family: monospace;
+        font-size: 0.77rem;
+      }
+      .dots {
+        color: var(--magenta);
+        letter-spacing: 2px;
+      }
+      pre {
+        overflow-x: auto;
+        margin: 0;
+        padding: 23px;
+        color: #dddce2;
+        font-size: 0.78rem;
+        line-height: 1.65;
+        tab-size: 2;
+      }
+      .kw {
+        color: #f194c2;
+      }
+      .fn {
+        color: #77dfda;
+      }
+      .str {
+        color: #d5ea8b;
+      }
+      .cm {
+        color: #6f6d77;
+      }
+
+      .callout {
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        gap: 18px;
+        margin-top: 18px;
+        padding: 24px;
+        border: 1px solid rgba(245, 198, 107, 0.2);
+        border-radius: 17px;
+        background: rgba(245, 198, 107, 0.055);
+      }
+      .callout-icon {
+        color: var(--gold);
+        font-size: 1.5rem;
+      }
+      .callout h4 {
+        margin: 0 0 4px;
+      }
+      .callout p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .steps {
+        counter-reset: step;
+        display: grid;
+        gap: 12px;
+      }
+      .step {
+        counter-increment: step;
+        display: grid;
+        grid-template-columns: 54px 1fr auto;
+        gap: 18px;
+        align-items: center;
+        padding: 23px;
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        background: var(--panel);
+      }
+      .step::before {
+        content: counter(step, decimal-leading-zero);
+        color: var(--magenta-soft);
+        font-family: monospace;
+        font-weight: 800;
+      }
+      .step h3 {
+        margin: 0 0 4px;
+        font-size: 1rem;
+      }
+      .step p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+      .effort {
+        padding: 5px 9px;
+        border-radius: 999px;
+        color: var(--faint);
+        background: #111014;
+        font-size: 0.69rem;
+        white-space: nowrap;
+      }
+
+      .folder {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+        padding: 34px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+      }
+      .folder pre {
+        padding: 0;
+        background: transparent;
+      }
+      .folder-copy h3 {
+        margin-top: 0;
+      }
+      .folder-copy p {
+        color: var(--muted);
+      }
+
+      .final-card {
+        padding: 44px;
+        border-radius: var(--radius);
+        color: #171117;
+        background: linear-gradient(135deg, #ff73b5, #ec2c88 70%);
+        box-shadow: 0 28px 80px rgba(236, 44, 136, 0.25);
+      }
+      .final-card .eyebrow {
+        color: #4c1832;
+      }
+      .final-card .eyebrow::before {
+        background: #4c1832;
+        box-shadow: none;
+      }
+      .final-card h2 {
+        max-width: 790px;
+        margin-bottom: 18px;
+      }
+      .final-card p {
+        max-width: 820px;
+        margin: 0;
+        font-size: 1.05rem;
+      }
+      .decision-line {
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(23, 17, 23, 0.25);
+        font-weight: 800;
+      }
+
+      .sources {
+        margin-top: 50px;
+        padding-top: 28px;
+        border-top: 1px solid var(--line);
+      }
+      .sources h3 {
+        margin: 0 0 13px;
+        font-size: 0.9rem;
+      }
+      .sources ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 22px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .sources a {
+        color: var(--muted);
+        font-size: 0.8rem;
+        text-underline-offset: 4px;
+      }
+      .sources a:hover {
+        color: var(--ink);
+      }
+
+      footer {
+        padding: 26px 0 48px;
+        color: var(--faint);
+        font-size: 0.76rem;
+      }
+      footer .shell {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      @media (max-width: 900px) {
+        nav {
+          display: none;
+        }
+        .hero-grid,
+        .section-head,
+        .folder {
+          grid-template-columns: 1fr;
+        }
+        .hero-grid {
+          gap: 30px;
+        }
+        .section-head {
+          gap: 8px;
+        }
+        .ownership-grid {
+          grid-template-columns: 1fr;
+        }
+        .owner-card {
+          min-height: 0;
+        }
+        .flow {
+          grid-template-columns: 1fr;
+        }
+        .flow-arrow {
+          transform: rotate(90deg);
+          min-height: 32px;
+        }
+        .code-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .shell {
+          width: min(100% - 24px, 1180px);
+        }
+        .hero {
+          padding: 64px 0 54px;
+        }
+        main {
+          padding-top: 54px;
+        }
+        section {
+          margin-bottom: 76px;
+        }
+        .recommendation,
+        .architecture,
+        .folder,
+        .final-card {
+          padding: 25px;
+        }
+        .split-note {
+          grid-template-columns: 1fr;
+        }
+        .step {
+          grid-template-columns: 38px 1fr;
+        }
+        .effort {
+          grid-column: 2;
+          justify-self: start;
+        }
+        footer .shell {
+          display: block;
+        }
+      }
+
+      @media print {
+        :root {
+          color-scheme: light;
+          --ink: #111;
+          --muted: #444;
+          --faint: #666;
+          --paper: #fff;
+          --panel: #fafafa;
+          --panel-2: #f2f2f2;
+          --line: #ddd;
+        }
+        .topbar {
+          position: static;
+          background: white;
+        }
+        body {
+          background: white;
+        }
+        section {
+          break-inside: avoid;
+        }
+        .recommendation,
+        .final-card {
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="shell topbar-inner">
+        <a class="brand" href="#top" aria-label="Back to top">
+          <span class="brand-mark">F</span>
+          <span>FON Banking / Architecture</span>
+        </a>
+        <nav aria-label="Proposal sections">
+          <a href="#decision">Decision</a>
+          <a href="#ownership">Ownership</a>
+          <a href="#implementation">Implementation</a>
+          <a href="#migration">Migration</a>
+        </nav>
+      </div>
+    </header>
+
+    <div id="top" class="hero">
+      <div class="shell">
+        <p class="eyebrow">Technical proposal · July 2026</p>
+        <h1>One app.<br />Two kinds of <em>state.</em></h1>
+        <div class="hero-grid">
+          <p class="lede">
+            A practical state-management and data-fetching strategy for the FON
+            Banking Expo app—designed around ownership, security, predictable
+            caching, and a codebase that stays easy to change.
+          </p>
+          <div class="verdict">
+            <b>Short answer</b>
+            <span
+              >Your choice is right: TanStack Query + Zustand, with strict and
+              intentionally small boundaries.</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main class="shell">
+      <section id="decision">
+        <div class="section-head">
+          <span class="section-num">01 / DECISION</span>
+          <div>
+            <h2>Keep the pairing. Refine the responsibility.</h2>
+            <p>
+              The libraries are complementary, not competing. The architecture
+              succeeds when the same value never has two owners.
+            </p>
+          </div>
+        </div>
+
+        <div class="recommendation">
+          <h3>
+            Adopt TanStack Query v5 for server state. Add Zustand v5 only for
+            genuinely shared client state.
+          </h3>
+          <p>
+            Accounts, cards, transactions, payment templates, profile data,
+            request status, errors, retries, freshness, and invalidation belong
+            to TanStack Query. A draft payment that spans screens, a
+            privacy-mode toggle, onboarding progress, or a global sheet state
+            may belong to Zustand. Input used by only one screen stays in React
+            state.
+          </p>
+          <div class="pill-row">
+            <span class="pill">Expo SDK 54</span>
+            <span class="pill">React Native 0.81</span>
+            <span class="pill">React 19.1</span>
+            <span class="pill">TanStack Query v5</span>
+            <span class="pill">Zustand v5</span>
+            <span class="pill">Axios transport</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="ownership">
+        <div class="section-head">
+          <span class="section-num">02 / OWNERSHIP</span>
+          <div>
+            <h2>Put every value in exactly one place.</h2>
+            <p>
+              This boundary is more important than the library choice. It
+              prevents stale copies, manual synchronization, and broad
+              re-renders.
+            </p>
+          </div>
+        </div>
+
+        <div class="ownership-grid">
+          <article class="owner-card query">
+            <span class="owner-tag">TanStack Query</span>
+            <h3>Server-owned truth</h3>
+            <p>
+              Anything fetched from or written to the banking API, plus the
+              lifecycle around those requests.
+            </p>
+            <ul>
+              <li>Accounts, cards, transactions</li>
+              <li>Loading, error, stale &amp; retry state</li>
+              <li>Pagination and background refresh</li>
+              <li>Mutation status and invalidation</li>
+              <li>Cached derived views via <code>select</code></li>
+            </ul>
+          </article>
+
+          <article class="owner-card store">
+            <span class="owner-tag">Zustand</span>
+            <h3>Shared client state</h3>
+            <p>
+              State created by the app that several distant screens need and the
+              server does not own.
+            </p>
+            <ul>
+              <li>Multi-screen payment draft</li>
+              <li>Selected source account</li>
+              <li>Balance privacy preference</li>
+              <li>Transient cross-route UI state</li>
+              <li>Non-secret user preferences</li>
+            </ul>
+          </article>
+
+          <article class="owner-card local">
+            <span class="owner-tag">React / Router</span>
+            <h3>Local &amp; navigation state</h3>
+            <p>
+              Keep state close to where it is rendered. Global does not mean
+              convenient; it means shared ownership.
+            </p>
+            <ul>
+              <li>Input text and validation display</li>
+              <li>Open/closed local modal</li>
+              <li>Animation and swiper position</li>
+              <li>Route IDs and search parameters</li>
+              <li>One-screen filter selection</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="rule">
+          <strong>The placement test:</strong> fetched from the API → Query;
+          shared across routes but not server-owned → Zustand; otherwise → local
+          state or route params.
+        </div>
+      </section>
+
+      <section id="current-state">
+        <div class="section-head">
+          <span class="section-num">03 / TODAY</span>
+          <div>
+            <h2>What the current hook gets right—and what it cannot scale.</h2>
+            <p>
+              <code>useBankingData</code> is a useful first boundary, but every
+              mounted consumer owns a separate request cycle and private copy of
+              the same data.
+            </p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Concern</th>
+                <th>Current approach</th>
+                <th>Recommended approach</th>
+                <th>Why it matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Shared results</td>
+                <td class="no">Per-hook local state</td>
+                <td class="yes">Query cache keyed by resource</td>
+                <td>
+                  Several screens reuse one result instead of issuing duplicate
+                  requests.
+                </td>
+              </tr>
+              <tr>
+                <td>Freshness</td>
+                <td class="no">Manual mount effect</td>
+                <td class="yes"><code>staleTime</code> + app-focus refresh</td>
+                <td>
+                  Data is refreshed intentionally when the app returns to the
+                  foreground.
+                </td>
+              </tr>
+              <tr>
+                <td>Errors &amp; retries</td>
+                <td>One combined error</td>
+                <td>Per-resource policies</td>
+                <td>
+                  An accounts failure is different from a card or transaction
+                  failure.
+                </td>
+              </tr>
+              <tr>
+                <td>Writes</td>
+                <td class="no">No cache strategy</td>
+                <td class="yes">Mutations + targeted invalidation</td>
+                <td>
+                  A transfer can refresh the affected account and transaction
+                  keys only.
+                </td>
+              </tr>
+              <tr>
+                <td>Logout</td>
+                <td>Local reset per mount</td>
+                <td class="yes"><code>queryClient.clear()</code></td>
+                <td>
+                  Private data leaves memory once, centrally, when the session
+                  ends.
+                </td>
+              </tr>
+              <tr>
+                <td>Auth header</td>
+                <td>Two Axios creation paths</td>
+                <td class="yes">One client + request interceptor</td>
+                <td>
+                  Removes drift between the context client and
+                  <code>useApi</code>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="architecture">
+        <div class="section-head">
+          <span class="section-num">04 / SHAPE</span>
+          <div>
+            <h2>The target data flow.</h2>
+            <p>
+              Screens ask for typed domain hooks. Hooks describe cache behavior.
+              API functions handle transport. The backend remains the source of
+              truth.
+            </p>
+          </div>
+        </div>
+
+        <div class="architecture">
+          <div
+            class="flow"
+            role="img"
+            aria-label="Screens call domain hooks, domain hooks use TanStack Query, and TanStack Query calls the typed API layer"
+          >
+            <div class="flow-node">
+              <small>01 / UI</small>
+              <div>
+                <h3>Expo Router screens</h3>
+                <p>
+                  Render query state and invoke domain mutations. No Axios calls
+                  and no copied server data.
+                </p>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <small>02 / CACHE POLICY</small>
+              <div>
+                <h3>Domain query hooks</h3>
+                <p>
+                  Query keys, enablement, freshness, selection, mutations, and
+                  invalidation live here.
+                </p>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <small>03 / TRANSPORT</small>
+              <div>
+                <h3>Typed API modules</h3>
+                <p>
+                  A single Axios client converts HTTP responses and errors into
+                  domain-friendly values.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="split-note">
+            <div>
+              <b>Zustand sits beside this flow.</b>It supplies client-only
+              values such as a draft or preference; it does not mirror the query
+              cache.
+            </div>
+            <div>
+              <b>SecureStore sits below authentication.</b>Keep secrets and
+              small identifiers there. Do not persist banking payloads in a
+              general client store.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="implementation">
+        <div class="section-head">
+          <span class="section-num">05 / PATTERNS</span>
+          <div>
+            <h2>Concrete implementation patterns.</h2>
+            <p>
+              The following examples are intentionally close to the current
+              project. They show the shape of the solution, not a copy-paste
+              migration in disguise.
+            </p>
+          </div>
+        </div>
+
+        <div class="code-grid">
+          <article class="code-card">
+            <div class="code-title">
+              <span>lib/query-client.ts</span><span class="dots">● ● ●</span>
+            </div>
+            <pre><span class="kw">import</span> { QueryClient } <span class="kw">from</span> <span class="str">"@tanstack/react-query"</span>;
+
+<span class="kw">export const</span> queryClient = <span class="kw">new</span> <span class="fn">QueryClient</span>({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 10 * 60_000,
+      retry: 1,
+      refetchOnReconnect: <span class="kw">true</span>,
+    },
+    mutations: { retry: 0 },
+  },
+});
+
+<span class="cm">// Connect AppState → focusManager at the root.</span>
+<span class="cm">// Connect network status → onlineManager.</span></pre>
+          </article>
+
+          <article class="code-card">
+            <div class="code-title">
+              <span>features/accounts/queries.ts</span
+              ><span class="dots">● ● ●</span>
+            </div>
+            <pre><span class="kw">export const</span> accountKeys = {
+  all: [<span class="str">"accounts"</span>] <span class="kw">as const</span>,
+  detail: (id: <span class="kw">string</span>) =&gt;
+    [<span class="str">"accounts"</span>, id] <span class="kw">as const</span>,
+  cards: (id: <span class="kw">string</span>) =&gt;
+    [<span class="str">"accounts"</span>, id, <span class="str">"cards"</span>] <span class="kw">as const</span>,
+  transactions: (id: <span class="kw">string</span>) =&gt;
+    [<span class="str">"accounts"</span>, id, <span class="str">"transactions"</span>] <span class="kw">as const</span>,
+};
+
+<span class="kw">export function</span> <span class="fn">useAccounts</span>() {
+  <span class="kw">return</span> <span class="fn">useQuery</span>({
+    queryKey: accountKeys.all,
+    queryFn: accountsApi.list,
+  });
+}</pre>
+          </article>
+
+          <article class="code-card">
+            <div class="code-title">
+              <span>features/accounts/queries.ts</span
+              ><span class="dots">● ● ●</span>
+            </div>
+            <pre><span class="kw">export function</span> <span class="fn">useAccountCards</span>(accountId?: <span class="kw">string</span>) {
+  <span class="kw">return</span> <span class="fn">useQuery</span>({
+    queryKey: accountKeys.cards(accountId ?? <span class="str">""</span>),
+    queryFn: () =&gt; accountsApi.cards(accountId!),
+    enabled: Boolean(accountId),
+  });
+}
+
+<span class="kw">export function</span> <span class="fn">useAccountTransactions</span>(id?: <span class="kw">string</span>) {
+  <span class="kw">return</span> <span class="fn">useInfiniteQuery</span>({
+    queryKey: accountKeys.transactions(id ?? <span class="str">""</span>),
+    queryFn: ({ pageParam }) =&gt;
+      accountsApi.transactions(id!, pageParam),
+    initialPageParam: 1,
+    enabled: Boolean(id),
+    getNextPageParam: (page) =&gt; page.nextPage,
+  });
+}</pre>
+          </article>
+
+          <article class="code-card">
+            <div class="code-title">
+              <span>stores/payment-draft-store.ts</span
+              ><span class="dots">● ● ●</span>
+            </div>
+            <pre><span class="kw">import</span> { create } <span class="kw">from</span> <span class="str">"zustand"</span>;
+
+<span class="kw">type</span> PaymentDraft = {
+  sourceAccountId: <span class="kw">string</span> | <span class="kw">null</span>;
+  recipientAccount: <span class="kw">string</span>;
+  amount: <span class="kw">string</span>;
+  setSource: (id: <span class="kw">string</span>) =&gt; <span class="kw">void</span>;
+  reset: () =&gt; <span class="kw">void</span>;
+};
+
+<span class="kw">export const</span> usePaymentDraft = create&lt;PaymentDraft&gt;()(
+  (set) =&gt; ({
+    sourceAccountId: <span class="kw">null</span>,
+    recipientAccount: <span class="str">""</span>,
+    amount: <span class="str">""</span>,
+    setSource: (sourceAccountId) =&gt; <span class="fn">set</span>({ sourceAccountId }),
+    reset: () =&gt; <span class="fn">set</span>({
+      sourceAccountId: <span class="kw">null</span>,
+      recipientAccount: <span class="str">""</span>,
+      amount: <span class="str">""</span>,
+    }),
+  }),
+);
+
+<span class="cm">// Components subscribe with narrow selectors:</span>
+<span class="cm">// usePaymentDraft((state) =&gt; state.amount)</span></pre>
+          </article>
+        </div>
+
+        <div class="callout">
+          <div class="callout-icon">⚿</div>
+          <div>
+            <h4>Banking-specific security boundary</h4>
+            <p>
+              Keep session secrets in Expo SecureStore, clear the query cache on
+              logout or user change, and avoid persisting balances, card data,
+              CVV values, or transaction history unless an explicit
+              offline-security design has been approved. A persisted cache is a
+              product and threat-model decision—not a default optimization.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="policies">
+        <div class="section-head">
+          <span class="section-num">06 / POLICY</span>
+          <div>
+            <h2>Sensible defaults, deliberate exceptions.</h2>
+            <p>
+              Banking data should feel current without turning every tab change
+              into a network storm.
+            </p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Resource</th>
+                <th>Suggested freshness</th>
+                <th>Refresh trigger</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Accounts / balances</td>
+                <td>15–30 seconds</td>
+                <td>App focus, pull-to-refresh, successful transfer</td>
+                <td>Invalidate affected accounts after money movement.</td>
+              </tr>
+              <tr>
+                <td>Recent transactions</td>
+                <td>15–30 seconds</td>
+                <td>App focus, pull-to-refresh, successful transfer</td>
+                <td>
+                  Prefer a paginated backend endpoint over loading every
+                  account’s full history.
+                </td>
+              </tr>
+              <tr>
+                <td>Cards</td>
+                <td>5 minutes</td>
+                <td>App focus when stale, card mutation</td>
+                <td>Card metadata changes less frequently than balances.</td>
+              </tr>
+              <tr>
+                <td>Payment templates</td>
+                <td>5 minutes</td>
+                <td>Template create/update/delete</td>
+                <td>Optimistic updates are reasonable if rollback is clear.</td>
+              </tr>
+              <tr>
+                <td>Reference data</td>
+                <td>30 minutes+</td>
+                <td>Reconnect or manual invalidation</td>
+                <td>
+                  Currency lists and payment codes can remain fresh longer.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="rule">
+          <strong>Retry rule:</strong> retry transient reads once or twice; do
+          not automatically retry money-moving mutations unless the backend
+          provides an idempotency key and the flow is explicitly designed for
+          it.
+        </div>
+      </section>
+
+      <section id="structure">
+        <div class="section-head">
+          <span class="section-num">07 / FILES</span>
+          <div>
+            <h2>Organize by domain, not by library.</h2>
+            <p>
+              “Queries” and “stores” are implementation details. Accounts,
+              payments, cards, and auth are the concepts developers navigate.
+            </p>
+          </div>
+        </div>
+        <div class="folder">
+          <pre>src/ <span class="cm">(or project root)</span>
+├── app/
+│   └── _layout.tsx
+├── lib/
+│   ├── api-client.ts
+│   └── query-client.ts
+├── features/
+│   ├── accounts/
+│   │   ├── api.ts
+│   │   ├── keys.ts
+│   │   ├── queries.ts
+│   │   └── types.ts
+│   ├── cards/
+│   ├── transactions/
+│   └── payments/
+│       ├── api.ts
+│       ├── mutations.ts
+│       └── payment-draft-store.ts
+└── auth/
+    ├── auth-store.ts <span class="cm">(optional)</span>
+    └── secure-session.ts</pre>
+          <div class="folder-copy">
+            <h3>One direction of dependency</h3>
+            <p>
+              Screens import feature hooks. Feature hooks import typed API
+              functions and query keys. The API layer imports the single Axios
+              client. Stores do not import query data or copy it into their own
+              fields.
+            </p>
+            <p>
+              If the current top-level folders are preferred, the same boundary
+              still works. The architectural rule matters more than adding a
+              <code>src</code> directory.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="migration">
+        <div class="section-head">
+          <span class="section-num">08 / MIGRATION</span>
+          <div>
+            <h2>Move in small, testable slices.</h2>
+            <p>
+              No rewrite is needed. Introduce the cache at the root, then
+              replace the current aggregate hook one resource at a time.
+            </p>
+          </div>
+        </div>
+
+        <div class="steps">
+          <article class="step">
+            <div>
+              <h3>Install and configure TanStack Query</h3>
+              <p>
+                Add one stable QueryClient at the root; wire React Native
+                AppState and network status.
+              </p>
+            </div>
+            <span class="effort">foundation</span>
+          </article>
+          <article class="step">
+            <div>
+              <h3>Unify the Axios client</h3>
+              <p>
+                Move base URL, auth header injection, and normalized error
+                mapping into one transport module.
+              </p>
+            </div>
+            <span class="effort">small</span>
+          </article>
+          <article class="step">
+            <div>
+              <h3>Migrate accounts first</h3>
+              <p>
+                Create account keys, API functions, and
+                <code>useAccounts</code>; switch the home and products screens.
+              </p>
+            </div>
+            <span class="effort">low risk</span>
+          </article>
+          <article class="step">
+            <div>
+              <h3>Split cards and transactions by account</h3>
+              <p>
+                Use dependent or parallel queries. Add backend pagination before
+                transaction history grows.
+              </p>
+            </div>
+            <span class="effort">medium</span>
+          </article>
+          <article class="step">
+            <div>
+              <h3>Add mutation flows</h3>
+              <p>
+                Invalidate precise keys after transfers and card actions; use
+                idempotency for financial writes.
+              </p>
+            </div>
+            <span class="effort">high care</span>
+          </article>
+          <article class="step">
+            <div>
+              <h3>Clear private cache at session boundaries</h3>
+              <p>
+                Clear or remove all user-scoped queries on logout, account
+                switch, and invalid-token handling.
+              </p>
+            </div>
+            <span class="effort">required</span>
+          </article>
+          <article class="step">
+            <div>
+              <h3>
+                Add Zustand only when a real shared client-state case appears
+              </h3>
+              <p>
+                The multi-screen payment draft is the strongest current
+                candidate. Keep the first store small.
+              </p>
+            </div>
+            <span class="effort">as needed</span>
+          </article>
+          <article class="step">
+            <div>
+              <h3>Delete the aggregate loading hook</h3>
+              <p>
+                Once all consumers use domain queries, remove
+                <code>useBankingData</code> and its duplicated state machine.
+              </p>
+            </div>
+            <span class="effort">cleanup</span>
+          </article>
+        </div>
+      </section>
+
+      <section id="avoid">
+        <div class="section-head">
+          <span class="section-num">09 / GUARDRAILS</span>
+          <div>
+            <h2>What not to build.</h2>
+            <p>
+              Most state-management complexity comes from duplicated ownership,
+              not insufficient tooling.
+            </p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Avoid</th>
+                <th>Because</th>
+                <th>Use instead</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Copying query results into Zustand</td>
+                <td>Creates two truths and synchronization bugs.</td>
+                <td>
+                  Read directly from Query; derive with <code>select</code>.
+                </td>
+              </tr>
+              <tr>
+                <td>One giant “app store”</td>
+                <td>
+                  Couples unrelated domains and encourages broad subscriptions.
+                </td>
+                <td>Small purpose-built stores with narrow selectors.</td>
+              </tr>
+              <tr>
+                <td>Persisting the whole query cache</td>
+                <td>Leaves sensitive, stale banking data on device.</td>
+                <td>Start memory-only; approve offline scope explicitly.</td>
+              </tr>
+              <tr>
+                <td>Global state for every form field</td>
+                <td>
+                  Adds lifecycle and reset complexity without sharing value.
+                </td>
+                <td>Local form state; Zustand only for cross-route drafts.</td>
+              </tr>
+              <tr>
+                <td>Blind mutation retries</td>
+                <td>Can duplicate financial actions.</td>
+                <td>No retries by default; use server idempotency keys.</td>
+              </tr>
+              <tr>
+                <td>A single aggregate “load everything” query</td>
+                <td>
+                  Couples failure, freshness, and rendering of unrelated
+                  resources.
+                </td>
+                <td>Composable resource queries with independent keys.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="conclusion">
+        <div class="final-card">
+          <p class="eyebrow">Architecture decision</p>
+          <h2>
+            Approve Zustand + TanStack Query—with TanStack Query doing most of
+            the work.
+          </h2>
+          <p>
+            Your proposed stack is the best fit for this Expo app. The
+            correction is conceptual: do not think of Zustand as the home of
+            “global data.” Treat TanStack Query as the owner of remote banking
+            data and Zustand as a small tool for shared, client-created state.
+            React state and Expo Router complete the picture for everything
+            local or navigational.
+          </p>
+          <div class="decision-line">
+            Outcome: less custom loading code, fewer duplicate requests,
+            explicit security boundaries, and simpler screens.
+          </div>
+        </div>
+
+        <div class="sources">
+          <h3>Primary references</h3>
+          <ul>
+            <li>
+              <a
+                href="https://tanstack.com/query/latest/docs/framework/react/overview"
+                >TanStack Query documentation ↗</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://tanstack.com/query/latest/docs/framework/react/guides/query-keys"
+                >Query key guidance ↗</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://tanstack.com/query/latest/docs/framework/react/guides/window-focus-refetching"
+                >React Native focus management ↗</a
+              >
+            </li>
+            <li>
+              <a href="https://zustand.docs.pmnd.rs/"
+                >Zustand documentation ↗</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://zustand.docs.pmnd.rs/learn/guides/prevent-rerenders-with-use-shallow"
+                >Zustand selector guidance ↗</a
+              >
+            </li>
+            <li>
+              <a href="https://docs.expo.dev/versions/v54.0.0/sdk/securestore/"
+                >Expo SDK 54 SecureStore ↗</a
+              >
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="shell">
+        <span>FON Banking · Frontend architecture proposal</span
+        ><span>Standalone HTML · Print friendly</span>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -123,7 +123,7 @@ function GlobalWipeButton() {
   };
 
   return (
-    <View className="absolute left-4 top-10 z-50">
+    <View className="absolute right-4 bottom-20 z-50">
       <Pressable
         onPress={handleDataClear}
         className="bg-red-600 rounded-full px-4 py-3 shadow-lg"

@@ -80,6 +80,7 @@ export default function TabsLayout() {
         name="settings"
         options={{
           title: "Podesavanja",
+          headerShown: false,
           tabBarIcon: ({ focused }) => (
             <Ionicons
               name="settings-outline"
