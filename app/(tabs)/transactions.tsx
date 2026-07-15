@@ -7,6 +7,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   TextInput,
@@ -31,6 +33,7 @@ const MONTH_LABELS = [
 const PAGE_SIZE = 8;
 
 type TransactionFilter = "all" | "income" | "expense";
+type ExtraFilter = "all" | "7days" | "30days" | "card" | "pending";
 
 const formatAmount = (amount: number) =>
   new Intl.NumberFormat("en-US", {
@@ -47,6 +50,49 @@ const formatDate = (transactionTime: string) => {
     year: "numeric",
   }).format(transactionDate);
 };
+
+const getTransactionGroup = (transactionTime: string) => {
+  const date = new Date(transactionTime);
+  const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(now.getDate() - 7);
+
+  if (date >= sevenDaysAgo) {
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    let label: string;
+
+    if (day.getTime() === today.getTime()) label = "Danas";
+    else if (day.getTime() === yesterday.getTime()) label = "Juče";
+    else {
+      label = new Intl.DateTimeFormat("sr-Latn-RS", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      }).format(date);
+      label = label.charAt(0).toLocaleUpperCase("sr-Latn-RS") + label.slice(1);
+    }
+
+    return { key: `day-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`, label };
+  }
+
+  const label = new Intl.DateTimeFormat("sr-Latn-RS", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
+  return {
+    key: `month-${date.getFullYear()}-${date.getMonth()}`,
+    label: label.charAt(0).toLocaleUpperCase("sr-Latn-RS") + label.slice(1),
+  };
+};
+
+const formatTime = (transactionTime: string) =>
+  new Intl.DateTimeFormat("sr-Latn-RS", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(transactionTime));
 
 function MonthlyOverview({
   transactions,
@@ -152,10 +198,13 @@ export default function TransactionsPage() {
   const { transactions, accountIds, isLoading, errorMessage } = useBankingData();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<TransactionFilter>("all");
-  const [currentPage, setCurrentPage] = useState(0);
+  const [extraFilter, setExtraFilter] = useState<ExtraFilter>("all");
+  const [filtersVisible, setFiltersVisible] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const filteredTransactions = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase();
+    const now = new Date();
 
     return transactions.filter((transaction) => {
       const isExpense = accountIds.has(transaction.senderAccount);
@@ -163,6 +212,13 @@ export default function TransactionsPage() {
         filter === "all" ||
         (filter === "expense" && isExpense) ||
         (filter === "income" && !isExpense);
+      const age = now.getTime() - new Date(transaction.transactionTime).getTime();
+      const matchesExtra =
+        extraFilter === "all" ||
+        (extraFilter === "7days" && age <= 7 * 86400000) ||
+        (extraFilter === "30days" && age <= 30 * 86400000) ||
+        (extraFilter === "card" && Boolean(transaction.cardNumber)) ||
+        (extraFilter === "pending" && transaction.status === "na_cekanju");
       const searchableText = [
         transaction.recipientName,
         transaction.senderAccount,
@@ -174,62 +230,75 @@ export default function TransactionsPage() {
         .join(" ")
         .toLocaleLowerCase();
 
-      return matchesFilter && (!query || searchableText.includes(query));
+      return matchesFilter && matchesExtra && (!query || searchableText.includes(query));
     });
-  }, [accountIds, filter, searchQuery, transactions]);
+  }, [accountIds, extraFilter, filter, searchQuery, transactions]);
 
-  const pageCount = Math.max(1, Math.ceil(filteredTransactions.length / PAGE_SIZE));
-  const visibleTransactions = filteredTransactions.slice(
-    currentPage * PAGE_SIZE,
-    (currentPage + 1) * PAGE_SIZE,
-  );
+  const visibleTransactions = filteredTransactions.slice(0, visibleCount);
+  const groupedTransactions = useMemo(() => {
+    const groups: { key: string; label: string; transactions: Transaction[] }[] = [];
+
+    visibleTransactions.forEach((transaction) => {
+      const group = getTransactionGroup(transaction.transactionTime);
+      const previousGroup = groups.at(-1);
+      if (previousGroup?.key === group.key) previousGroup.transactions.push(transaction);
+      else groups.push({ ...group, transactions: [transaction] });
+    });
+
+    return groups;
+  }, [visibleTransactions]);
 
   useEffect(() => {
-    setCurrentPage(0);
-  }, [filter, searchQuery]);
+    setVisibleCount(PAGE_SIZE);
+  }, [extraFilter, filter, searchQuery]);
 
-  useEffect(() => {
-    if (currentPage >= pageCount) {
-      setCurrentPage(pageCount - 1);
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const isNearBottom =
+      contentOffset.y + layoutMeasurement.height >= contentSize.height - 180;
+
+    if (isNearBottom && visibleCount < filteredTransactions.length) {
+      setVisibleCount((count) =>
+        Math.min(count + PAGE_SIZE, filteredTransactions.length),
+      );
     }
-  }, [currentPage, pageCount]);
+  };
 
   const filters: { label: string; value: TransactionFilter }[] = [
     { label: "Sve", value: "all" },
-    { label: "Prilivi", value: "income" },
-    { label: "Odlivi", value: "expense" },
+    { label: "Uplate", value: "income" },
+    { label: "Isplate", value: "expense" },
   ];
 
   return (
-    <View className="flex-1 bg-white pt-14">
+    <View className="flex-1 bg-white pt-12">
       <ContentHeader
         title="Transakcije"
         subtitle="Pregled svih priliva i odliva"
-        className="border-0 px-5 pb-7"
+        className="border-0 px-5 pb-6"
       />
       <ScrollView
-        contentContainerClassName="px-5 pb-10"
+        contentContainerClassName="px-3 pb-10"
         keyboardShouldPersistTaps="handled"
+        onScroll={handleScroll}
+        scrollEventThrottle={200}
         showsVerticalScrollIndicator={false}>
         <MonthlyOverview transactions={transactions} accountIds={accountIds} />
 
-        <View className="mb-4 flex-row items-center rounded-2xl bg-[#f5f7f8] px-4">
-          <Ionicons name="search-outline" size={22} color="#505050" />
+        <View className="h-11 flex-row items-center rounded-[15px] border-2 border-[#d94c9f] px-3">
           <TextInput
-            className="h-12 flex-1 pl-3 font-inria-regular text-lg text-cgray"
+            className="h-11 flex-1 font-inria-light text-lg text-[#303030]"
             onChangeText={setSearchQuery}
             placeholder="Pretraži transakcije"
             placeholderTextColor="#929292"
             value={searchQuery}
           />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={20} color="#929292" />
-            </Pressable>
-          )}
+          <Pressable hitSlop={10} onPress={() => searchQuery && setSearchQuery("")}>
+            <Ionicons name={searchQuery ? "close" : "search-outline"} size={25} color="#d94c9f" />
+          </Pressable>
         </View>
 
-        <View className="mb-7 flex-row gap-2">
+        <View className="mb-5 mt-3 flex-row items-center gap-2">
           {filters.map((filterOption) => {
             const isSelected = filter === filterOption.value;
 
@@ -237,10 +306,8 @@ export default function TransactionsPage() {
               <Pressable
                 key={filterOption.value}
                 className={cn(
-                  "rounded-full border px-4 py-2",
-                  isSelected
-                    ? "border-ctirquise bg-ctirquise"
-                    : "border-[#d6d6d6] bg-white",
+                  "rounded-full px-4 py-1.5",
+                  isSelected ? "bg-[#60c3ad]" : "bg-[#eeeeee]",
                 )}
                 onPress={() => setFilter(filterOption.value)}>
                 <Text
@@ -253,10 +320,29 @@ export default function TransactionsPage() {
               </Pressable>
             );
           })}
+          <Pressable className="ml-auto h-9 w-9 items-center justify-center" onPress={() => setFiltersVisible((value) => !value)}>
+            <Ionicons name="options-outline" size={27} color={extraFilter === "all" ? "#505050" : "#d94c9f"} />
+          </Pressable>
         </View>
 
+        {filtersVisible ? (
+          <View className="mb-5 rounded-[18px] border border-[#e2e2e2] bg-[#fafafa] p-3">
+            <View className="mb-2 flex-row items-center justify-between">
+              <Text className="font-inria-bold text-base">Dodatni filteri</Text>
+              {extraFilter !== "all" ? <Pressable onPress={() => setExtraFilter("all")}><Text className="text-sm text-[#d94c9f]">Poništi</Text></Pressable> : null}
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {([{ label: "Sve vreme", value: "all" }, { label: "7 dana", value: "7days" }, { label: "30 dana", value: "30days" }, { label: "Kartica", value: "card" }, { label: "Na čekanju", value: "pending" }] as const).map((item) => (
+                <Pressable key={item.value} onPress={() => setExtraFilter(item.value)} className={cn("mr-2 rounded-full border px-3 py-1.5", extraFilter === item.value ? "border-[#60c3ad] bg-[#60c3ad]" : "border-[#dedede] bg-white")}>
+                  <Text className={cn("text-sm", extraFilter === item.value ? "text-white" : "text-cgray")}>{item.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
         <View className="mb-4 flex-row items-center justify-between">
-          <Text className="text-2xl text-black">Sve transakcije</Text>
+          <Text className="text-xl text-black">Transakcije</Text>
           <Text className="font-inria-light text-base text-cgray">
             {filteredTransactions.length} rezultata
           </Text>
@@ -279,85 +365,78 @@ export default function TransactionsPage() {
           </View>
         ) : null}
 
-        <View className="gap-3">
-          {visibleTransactions.map((transaction) => {
-            const isExpense = accountIds.has(transaction.senderAccount);
-            const amount = isExpense
-              ? transaction.senderAmount ?? transaction.amount
-              : transaction.recipientAmount ?? transaction.amount;
-            const currency = isExpense
-              ? transaction.senderCurrency ?? transaction.currency
-              : transaction.recipientCurrency ?? transaction.currency;
-            const title = isExpense
-              ? transaction.recipientName
-              : `Priliv sa ${transaction.senderAccount}`;
+        {groupedTransactions.map((group) => (
+          <View key={group.key} className="mb-4">
+            <View className="mb-2 flex-row items-center gap-3 px-1">
+              <Text className="font-inria-regular text-lg text-cgray">
+                {group.label}
+              </Text>
+              <View className="h-px flex-1 bg-[#646464]" />
+            </View>
 
-            return (
-              <View
-                key={transaction.id}
-                className="flex-row items-center rounded-2xl bg-[#f5f7f8] p-3">
-                <View
-                  className={cn(
-                    "h-12 w-12 items-center justify-center rounded-full",
-                    isExpense ? "bg-[#fee8e9]" : "bg-[#e4f5e5]",
-                  )}>
-                  <Ionicons
-                    name={getTransactionIconName(transaction, accountIds)}
-                    size={23}
-                    color={isExpense ? "#df5660" : "#43a047"}
-                  />
-                </View>
-                <View className="min-w-0 flex-1 px-3">
-                  <Text className="text-lg text-black" numberOfLines={1}>
-                    {title}
-                  </Text>
-                  <Text className="pt-1 font-inria-light text-sm text-cgray" numberOfLines={1}>
-                    {transaction.paymentPurpose || formatDate(transaction.transactionTime)}
-                  </Text>
-                </View>
-                <View className="items-end">
-                  <Text
-                    className={cn(
-                      "text-base",
-                      isExpense ? "text-[#df5660]" : "text-[#43a047]",
-                    )}>
-                    {isExpense ? "-" : "+"}
-                    {formatAmount(amount)} {currency}
-                  </Text>
-                  <Text className="pt-1 font-inria-light text-sm text-cgray">
-                    {formatDate(transaction.transactionTime)}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
+            <View className="gap-1">
+              {group.transactions.map((transaction) => {
+                const isExpense = accountIds.has(transaction.senderAccount);
+                const amount = isExpense
+                  ? transaction.senderAmount ?? transaction.amount
+                  : transaction.recipientAmount ?? transaction.amount;
+                const currency = isExpense
+                  ? transaction.senderCurrency ?? transaction.currency
+                  : transaction.recipientCurrency ?? transaction.currency;
+                const title = isExpense
+                  ? transaction.recipientName
+                  : transaction.recipientName ||
+                    `Priliv sa ${transaction.senderAccount}`;
 
-        {filteredTransactions.length > 0 && (
-          <View className="mt-7 flex-row items-center justify-between rounded-2xl bg-[#f5f7f8] p-2">
-            <Pressable
-              className={cn(
-                "rounded-xl px-4 py-2",
-                currentPage === 0 ? "bg-[#e5e5e5]" : "bg-white",
-              )}
-              disabled={currentPage === 0}
-              onPress={() => setCurrentPage((page) => page - 1)}>
-              <Text className="text-cgray">Prethodna</Text>
-            </Pressable>
-            <Text className="text-cgray">
-              {currentPage + 1} / {pageCount}
-            </Text>
-            <Pressable
-              className={cn(
-                "rounded-xl px-4 py-2",
-                currentPage === pageCount - 1 ? "bg-[#e5e5e5]" : "bg-white",
-              )}
-              disabled={currentPage === pageCount - 1}
-              onPress={() => setCurrentPage((page) => page + 1)}>
-              <Text className="text-cgray">Sledeća</Text>
-            </Pressable>
+                return (
+                  <View
+                    key={transaction.id}
+                    className="min-h-[66px] flex-row items-center px-1 py-1.5">
+                    <View className="h-[50px] w-[50px] items-center justify-center rounded-full bg-[#f3f3f3]">
+                      <Ionicons
+                        name={getTransactionIconName(transaction, accountIds)}
+                        size={27}
+                        color="#005a91"
+                      />
+                    </View>
+                    <View className="min-w-0 flex-1 px-3">
+                      <Text className="font-inria-bold text-base text-black" numberOfLines={1}>
+                        {title}
+                      </Text>
+                      <Text className="pt-1 font-inria-light text-sm text-cgray" numberOfLines={1}>
+                        {formatDate(transaction.transactionTime)} {formatTime(transaction.transactionTime)}
+                      </Text>
+                    </View>
+                    <View className="max-w-[47%] items-end">
+                      <Text
+                        className={cn(
+                          "text-base",
+                          isExpense ? "text-[#ff2033]" : "text-[#12b964]",
+                        )}
+                        numberOfLines={1}>
+                        {isExpense ? "-" : "+"}
+                        {formatAmount(amount)} {currency}
+                      </Text>
+                      <Text className="pt-1 font-inria-light text-sm text-cgray" numberOfLines={1}>
+                        {transaction.cardNumber
+                          ? "Plaćanje karticom"
+                          : isExpense
+                            ? "Plaćanje sa računa"
+                            : "Uplata na račun"}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
           </View>
-        )}
+        ))}
+
+        {visibleCount < filteredTransactions.length ? (
+          <View className="items-center py-4">
+            <ActivityIndicator color="#60C3AD" />
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="A state management and data fetching proposal for the FON Banking Expo application."
+      content="A single-source-of-truth state and data strategy for the FON Banking Expo application."
     />
     <title>FON Banking — State &amp; Data Strategy</title>
     <style>
@@ -794,7 +794,7 @@
     <div id="top" class="hero">
       <div class="shell">
         <p class="eyebrow">Technical proposal · July 2026</p>
-        <h1>One app.<br />Two kinds of <em>state.</em></h1>
+        <h1>One value.<br />One <em>owner.</em></h1>
         <div class="hero-grid">
           <p class="lede">
             A practical state-management and data-fetching strategy for the FON
@@ -804,8 +804,8 @@
           <div class="verdict">
             <b>Short answer</b>
             <span
-              >Your choice is right: TanStack Query + Zustand, with strict and
-              intentionally small boundaries.</span
+              >Use TanStack Query for all banking API data. There is no current
+              use case for Zustand in this app.</span
             >
           </div>
         </div>
@@ -817,33 +817,35 @@
         <div class="section-head">
           <span class="section-num">01 / DECISION</span>
           <div>
-            <h2>Keep the pairing. Refine the responsibility.</h2>
+            <h2>Do not add Zustand.</h2>
             <p>
-              The libraries are complementary, not competing. The architecture
-              succeeds when the same value never has two owners.
+              The app has no shared, client-created state that needs a global
+              store. Adding one now would create another possible owner without
+              solving a current problem.
             </p>
           </div>
         </div>
 
         <div class="recommendation">
           <h3>
-            Adopt TanStack Query v5 for server state. Add Zustand v5 only for
-            genuinely shared client state.
+            Adopt TanStack Query v5 as the only in-memory owner of banking API
+            data. Keep UI state local, navigation state in Expo Router, and the
+            session boundary in AuthContext plus SecureStore.
           </h3>
           <p>
             Accounts, cards, transactions, payment templates, profile data,
             request status, errors, retries, freshness, and invalidation belong
-            to TanStack Query. A draft payment that spans screens, a
-            privacy-mode toggle, onboarding progress, or a global sheet state
-            may belong to Zustand. Input used by only one screen stays in React
-            state.
+            to TanStack Query. The current payment form is one screen, so its
+            fields and selected account remain local React state. Product IDs
+            and scanned QR results cross routes as serializable route params.
+            None of these values needs a second global store.
           </p>
           <div class="pill-row">
             <span class="pill">Expo SDK 54</span>
             <span class="pill">React Native 0.81</span>
             <span class="pill">React 19.1</span>
             <span class="pill">TanStack Query v5</span>
-            <span class="pill">Zustand v5</span>
+            <span class="pill">No global client store</span>
             <span class="pill">Axios transport</span>
           </div>
         </div>
@@ -880,18 +882,18 @@
           </article>
 
           <article class="owner-card store">
-            <span class="owner-tag">Zustand</span>
-            <h3>Shared client state</h3>
+            <span class="owner-tag">AuthContext + SecureStore</span>
+            <h3>Session state</h3>
             <p>
-              State created by the app that several distant screens need and the
-              server does not own.
+              Authentication lifecycle is a small app-wide concern. Secrets and
+              device identifiers stay behind the existing auth boundary.
             </p>
             <ul>
-              <li>Multi-screen payment draft</li>
-              <li>Selected source account</li>
-              <li>Balance privacy preference</li>
-              <li>Transient cross-route UI state</li>
-              <li>Non-secret user preferences</li>
+              <li>Authentication status</li>
+              <li>In-memory session token</li>
+              <li>Login, logout, activation and PIN actions</li>
+              <li>Device ID and PIN-setup marker</li>
+              <li>Query-cache cleanup on logout</li>
             </ul>
           </article>
 
@@ -913,9 +915,10 @@
         </div>
 
         <div class="rule">
-          <strong>The placement test:</strong> fetched from the API → Query;
-          shared across routes but not server-owned → Zustand; otherwise → local
-          state or route params.
+          <strong>The placement test:</strong> fetched from or written to the
+          API → TanStack Query; session secret or auth lifecycle → AuthContext
+          and SecureStore; encoded in navigation → route params; otherwise →
+          local component state. Never copy a query result into another store.
         </div>
       </section>
 
@@ -923,11 +926,12 @@
         <div class="section-head">
           <span class="section-num">03 / TODAY</span>
           <div>
-            <h2>What the current hook gets right—and what it cannot scale.</h2>
+            <h2>The app audit finds no global client-state use case.</h2>
             <p>
               <code>useBankingData</code> is a useful first boundary, but every
               mounted consumer owns a separate request cycle and private copy of
-              the same data.
+              the same data. That duplication calls for a query cache, not a
+              second client store.
             </p>
           </div>
         </div>
@@ -1000,6 +1004,18 @@
             </tbody>
           </table>
         </div>
+
+        <div class="rule">
+          <strong>Whole-app audit:</strong> auth-screen inputs, the payment form
+          and account menu, transaction search/filter/page, scanner progress,
+          switches, and carousel positions are all local UI state. Static
+          exchange-rate constants remain ordinary module data. Product IDs
+          already belong to the router. Authentication is already shared through
+          <code>AuthContext</code>. The only unusual cross-route value is the QR
+          scan result, currently returned through a module-level callback; make
+          it a serializable route param instead of introducing a store. Result:
+          zero current use cases for a global client-state library.
+        </div>
       </section>
 
       <section id="architecture">
@@ -1056,14 +1072,15 @@
           </div>
           <div class="split-note">
             <div>
-              <b>Zustand sits beside this flow.</b>It supplies client-only
-              values such as a draft or preference; it does not mirror the query
-              cache.
+              <b>There is no parallel data store.</b>Screens read remote data
+              through domain hooks backed by the same QueryClient. A selector
+              may return a smaller view, but it does not create another copy or
+              owner.
             </div>
             <div>
               <b>SecureStore sits below authentication.</b>Keep secrets and
-              small identifiers there. Do not persist banking payloads in a
-              general client store.
+              small identifiers there. Keep banking payloads memory-only in the
+              query cache unless an offline threat model is explicitly approved.
             </div>
           </div>
         </div>
@@ -1110,80 +1127,75 @@
               <span>features/accounts/queries.ts</span
               ><span class="dots">● ● ●</span>
             </div>
-            <pre><span class="kw">export const</span> accountKeys = {
-  all: [<span class="str">"accounts"</span>] <span class="kw">as const</span>,
-  detail: (id: <span class="kw">string</span>) =&gt;
-    [<span class="str">"accounts"</span>, id] <span class="kw">as const</span>,
-  cards: (id: <span class="kw">string</span>) =&gt;
-    [<span class="str">"accounts"</span>, id, <span class="str">"cards"</span>] <span class="kw">as const</span>,
-  transactions: (id: <span class="kw">string</span>) =&gt;
-    [<span class="str">"accounts"</span>, id, <span class="str">"transactions"</span>] <span class="kw">as const</span>,
-};
+            <pre><span class="kw">import</span> { queryOptions, useQuery } <span class="kw">from</span> <span class="str">"@tanstack/react-query"</span>;
+
+<span class="kw">const</span> accountsQuery = () =&gt; <span class="fn">queryOptions</span>({
+  queryKey: [<span class="str">"accounts"</span>] <span class="kw">as const</span>,
+  queryFn: accountsApi.list,
+  staleTime: 30_000,
+});
 
 <span class="kw">export function</span> <span class="fn">useAccounts</span>() {
-  <span class="kw">return</span> <span class="fn">useQuery</span>({
-    queryKey: accountKeys.all,
-    queryFn: accountsApi.list,
-  });
-}</pre>
-          </article>
+  <span class="kw">return</span> <span class="fn">useQuery</span>(<span class="fn">accountsQuery</span>());
+}
 
-          <article class="code-card">
-            <div class="code-title">
-              <span>features/accounts/queries.ts</span
-              ><span class="dots">● ● ●</span>
-            </div>
-            <pre><span class="kw">export function</span> <span class="fn">useAccountCards</span>(accountId?: <span class="kw">string</span>) {
+<span class="kw">export function</span> <span class="fn">useAccount</span>(accountId?: <span class="kw">string</span>) {
   <span class="kw">return</span> <span class="fn">useQuery</span>({
-    queryKey: accountKeys.cards(accountId ?? <span class="str">""</span>),
-    queryFn: () =&gt; accountsApi.cards(accountId!),
+    ...<span class="fn">accountsQuery</span>(),
+    select: (accounts) =&gt;
+      accounts.find((account) =&gt; account.accountId === accountId),
     enabled: Boolean(accountId),
   });
 }
 
-<span class="kw">export function</span> <span class="fn">useAccountTransactions</span>(id?: <span class="kw">string</span>) {
-  <span class="kw">return</span> <span class="fn">useInfiniteQuery</span>({
-    queryKey: accountKeys.transactions(id ?? <span class="str">""</span>),
-    queryFn: ({ pageParam }) =&gt;
-      accountsApi.transactions(id!, pageParam),
-    initialPageParam: 1,
-    enabled: Boolean(id),
-    getNextPageParam: (page) =&gt; page.nextPage,
-  });
-}</pre>
+<span class="cm">// Both hooks subscribe to the exact same ["accounts"] cache entry.</span>
+<span class="cm">// select changes the view returned to a screen, not the cached truth.</span></pre>
           </article>
 
           <article class="code-card">
             <div class="code-title">
-              <span>stores/payment-draft-store.ts</span
+              <span>app/(tabs)/products/account/[id].tsx</span
               ><span class="dots">● ● ●</span>
             </div>
-            <pre><span class="kw">import</span> { create } <span class="kw">from</span> <span class="str">"zustand"</span>;
+            <pre><span class="kw">export default function</span> <span class="fn">AccountDetails</span>() {
+  <span class="kw">const</span> { id } = <span class="fn">useLocalSearchParams</span>&lt;{
+    id?: <span class="kw">string</span>;
+  }&gt;();
+  <span class="kw">const</span> accountQuery = <span class="fn">useAccount</span>(id);
 
-<span class="kw">type</span> PaymentDraft = {
-  sourceAccountId: <span class="kw">string</span> | <span class="kw">null</span>;
-  recipientAccount: <span class="kw">string</span>;
-  amount: <span class="kw">string</span>;
-  setSource: (id: <span class="kw">string</span>) =&gt; <span class="kw">void</span>;
-  reset: () =&gt; <span class="kw">void</span>;
-};
+  <span class="kw">if</span> (!id) <span class="kw">return</span> &lt;NotFound /&gt;;
+  <span class="kw">if</span> (accountQuery.isPending) <span class="kw">return</span> &lt;ActivityIndicator /&gt;;
+  <span class="kw">if</span> (accountQuery.isError) <span class="kw">return</span> &lt;ErrorState /&gt;;
+  <span class="kw">if</span> (!accountQuery.data) <span class="kw">return</span> &lt;NotFound /&gt;;
 
-<span class="kw">export const</span> usePaymentDraft = create&lt;PaymentDraft&gt;()(
-  (set) =&gt; ({
-    sourceAccountId: <span class="kw">null</span>,
-    recipientAccount: <span class="str">""</span>,
-    amount: <span class="str">""</span>,
-    setSource: (sourceAccountId) =&gt; <span class="fn">set</span>({ sourceAccountId }),
-    reset: () =&gt; <span class="fn">set</span>({
-      sourceAccountId: <span class="kw">null</span>,
-      recipientAccount: <span class="str">""</span>,
-      amount: <span class="str">""</span>,
-    }),
-  }),
+  <span class="kw">return</span> &lt;AccountView account={accountQuery.data} /&gt;;
+}
+
+<span class="cm">// The route carries identity only. The screen reads the account</span>
+<span class="cm">// from Query; it never receives or stores a copied Account object.</span></pre>
+          </article>
+
+          <article class="code-card">
+            <div class="code-title">
+              <span>app/(tabs)/payments.tsx</span
+              ><span class="dots">● ● ●</span>
+            </div>
+            <pre><span class="kw">const</span> { data: accounts = [] } = <span class="fn">useAccounts</span>();
+
+<span class="cm">// Client-created choices stay local; store only the stable ID.</span>
+<span class="kw">const</span> [selectedAccountId, setSelectedAccountId] =
+  <span class="fn">useState</span>&lt;<span class="kw">string</span> | <span class="kw">null</span>&gt;(<span class="kw">null</span>);
+<span class="kw">const</span> [amount, setAmount] = <span class="fn">useState</span>(<span class="str">""</span>);
+
+<span class="kw">const</span> effectiveAccountId =
+  selectedAccountId ?? accounts[0]?.accountId ?? <span class="kw">null</span>;
+<span class="kw">const</span> selectedAccount = accounts.find(
+  (account) =&gt; account.accountId === effectiveAccountId,
 );
 
-<span class="cm">// Components subscribe with narrow selectors:</span>
-<span class="cm">// usePaymentDraft((state) =&gt; state.amount)</span></pre>
+<span class="cm">// accounts/selectedAccount: Query-owned server data</span>
+<span class="cm">// selectedAccountId/amount: screen-owned UI state</span>
+<span class="cm">// QR result: serializable Expo Router param back to this route</span></pre>
           </article>
         </div>
 
@@ -1276,8 +1288,8 @@
           <div>
             <h2>Organize by domain, not by library.</h2>
             <p>
-              “Queries” and “stores” are implementation details. Accounts,
-              payments, cards, and auth are the concepts developers navigate.
+              Query mechanics are implementation details. Accounts, payments,
+              cards, and auth are the concepts developers navigate.
             </p>
           </div>
         </div>
@@ -1299,17 +1311,17 @@
 │   └── payments/
 │       ├── api.ts
 │       ├── mutations.ts
-│       └── payment-draft-store.ts
+│       └── types.ts
 └── auth/
-    ├── auth-store.ts <span class="cm">(optional)</span>
+    ├── AuthContext.tsx
     └── secure-session.ts</pre>
           <div class="folder-copy">
             <h3>One direction of dependency</h3>
             <p>
               Screens import feature hooks. Feature hooks import typed API
-              functions and query keys. The API layer imports the single Axios
-              client. Stores do not import query data or copy it into their own
-              fields.
+              functions and canonical query options. The API layer imports the
+              single Axios client. No client data-store folder is needed, and no
+              layer copies query data into React context or local state.
             </p>
             <p>
               If the current top-level folders are preferred, the same boundary
@@ -1395,15 +1407,14 @@
           </article>
           <article class="step">
             <div>
-              <h3>
-                Add Zustand only when a real shared client-state case appears
-              </h3>
+              <h3>Replace the QR module callback with route params</h3>
               <p>
-                The multi-screen payment draft is the strongest current
-                candidate. Keep the first store small.
+                Return the scanned string to the payment route as a serializable
+                parameter. Keep the rest of the payment form local to its
+                screen.
               </p>
             </div>
-            <span class="effort">as needed</span>
+            <span class="effort">small</span>
           </article>
           <article class="step">
             <div>
@@ -1440,18 +1451,23 @@
             </thead>
             <tbody>
               <tr>
-                <td>Copying query results into Zustand</td>
+                <td>Copying query results into context or local state</td>
                 <td>Creates two truths and synchronization bugs.</td>
                 <td>
                   Read directly from Query; derive with <code>select</code>.
                 </td>
               </tr>
               <tr>
-                <td>One giant “app store”</td>
                 <td>
-                  Couples unrelated domains and encourages broad subscriptions.
+                  Adding a global client store without a current owner problem
                 </td>
-                <td>Small purpose-built stores with narrow selectors.</td>
+                <td>
+                  Adds dependencies, reset rules, and another place to put API
+                  data by mistake.
+                </td>
+                <td>
+                  React state, route params, and the existing auth context.
+                </td>
               </tr>
               <tr>
                 <td>Persisting the whole query cache</td>
@@ -1463,7 +1479,10 @@
                 <td>
                   Adds lifecycle and reset complexity without sharing value.
                 </td>
-                <td>Local form state; Zustand only for cross-route drafts.</td>
+                <td>
+                  Local form state; serializable route params when routes
+                  communicate.
+                </td>
               </tr>
               <tr>
                 <td>Blind mutation retries</td>
@@ -1486,17 +1505,15 @@
       <section id="conclusion">
         <div class="final-card">
           <p class="eyebrow">Architecture decision</p>
-          <h2>
-            Approve Zustand + TanStack Query—with TanStack Query doing most of
-            the work.
-          </h2>
+          <h2>Approve TanStack Query. Do not add Zustand.</h2>
           <p>
-            Your proposed stack is the best fit for this Expo app. The
-            correction is conceptual: do not think of Zustand as the home of
-            “global data.” Treat TanStack Query as the owner of remote banking
-            data and Zustand as a small tool for shared, client-created state.
-            React state and Expo Router complete the picture for everything
-            local or navigational.
+            The full frontend contains no shared client-created state that
+            justifies a global store. Treat TanStack Query as the sole in-memory
+            owner of remote banking data, React as the owner of screen-local UI,
+            Expo Router as the owner of route identity and serializable
+            cross-route values, and AuthContext plus SecureStore as the session
+            boundary. “Single source of truth” means one owner per value—not one
+            giant query that loads every resource together.
           </p>
           <div class="decision-line">
             Outcome: less custom loading code, fewer duplicate requests,
@@ -1509,31 +1526,31 @@
           <ul>
             <li>
               <a
-                href="https://tanstack.com/query/latest/docs/framework/react/overview"
-                >TanStack Query documentation ↗</a
+                href="https://tanstack.com/query/v5/docs/framework/react/overview"
+                >TanStack Query v5 documentation ↗</a
               >
             </li>
             <li>
               <a
-                href="https://tanstack.com/query/latest/docs/framework/react/guides/query-keys"
+                href="https://tanstack.com/query/v5/docs/framework/react/guides/query-keys"
                 >Query key guidance ↗</a
               >
             </li>
             <li>
               <a
-                href="https://tanstack.com/query/latest/docs/framework/react/guides/window-focus-refetching"
-                >React Native focus management ↗</a
-              >
-            </li>
-            <li>
-              <a href="https://zustand.docs.pmnd.rs/"
-                >Zustand documentation ↗</a
+                href="https://tanstack.com/query/v5/docs/framework/react/react-native"
+                >TanStack Query React Native guidance ↗</a
               >
             </li>
             <li>
               <a
-                href="https://zustand.docs.pmnd.rs/learn/guides/prevent-rerenders-with-use-shallow"
-                >Zustand selector guidance ↗</a
+                href="https://tanstack.com/query/v5/docs/framework/react/reference/useQuery"
+                >useQuery and select reference ↗</a
+              >
+            </li>
+            <li>
+              <a href="https://docs.expo.dev/router/reference/url-parameters/"
+                >Expo Router URL parameters ↗</a
               >
             </li>
             <li>
