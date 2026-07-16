@@ -20,7 +20,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Pocetna",
+          title: "Početna",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <Ionicons
@@ -49,7 +49,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="payments"
         options={{
-          title: "Placanja",
+          title: "Plaćanja",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <MaterialIcons
@@ -79,7 +79,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Podesavanja",
+          title: "Podešavanja",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <Ionicons

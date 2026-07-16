@@ -26,12 +26,13 @@ const formatTransactionDateTime = (transactionTime: string) => {
   const isToday = transactionDate.toDateString() === now.toDateString();
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
-  const isYesterday = transactionDate.toDateString() === yesterday.toDateString();
+  const isYesterday =
+    transactionDate.toDateString() === yesterday.toDateString();
 
   const date = isToday
     ? "Danas"
     : isYesterday
-      ? "Juce"
+      ? "Juče"
       : `${transactionDate.getDate().toString().padStart(2, "0")}. ${monthStrings[transactionDate.getMonth()]}`;
 
   const time = `${transactionDate.getHours().toString().padStart(2, "0")}:${transactionDate
@@ -44,29 +45,35 @@ const formatTransactionDateTime = (transactionTime: string) => {
 
 export default function RecentTransactions({
   className = "",
+  titleClassName = "",
   transactions,
   accountIds,
   isLoading = false,
+  limit = 4,
 }: {
   className?: string;
+  titleClassName?: string;
   transactions: Transaction[];
   accountIds: Set<string>;
   isLoading?: boolean;
+  limit?: number;
 }) {
-  const recentTransactions = transactions.slice(0, 4);
+  const recentTransactions = transactions.slice(0, limit);
 
   return (
     <View className={cn("gap-5", className)}>
       <View className="flex-row justify-between items-end ">
-        <Text className="text-cgray text-2xl">Poslednje transakcije</Text>
+        <Text className={cn("text-cgray text-2xl", titleClassName)}>
+          Poslednje transakcije
+        </Text>
         <Text className="text-ctirquise font-inter font-medium text-[14px] pb-1">
-          Prikazi sve
+          Prikaži sve
         </Text>
       </View>
       <View className="gap-3">
         {isLoading ? (
           <Text className="text-cgray font-inria-light">
-            Ucitavanje transakcija...
+            Učitavanje transakcija...
           </Text>
         ) : null}
         {!isLoading && recentTransactions.length === 0 ? (
@@ -77,12 +84,12 @@ export default function RecentTransactions({
         {recentTransactions.map((transaction) => {
           const isOutgoing = accountIds.has(transaction.senderAccount);
           const displayAmount = isOutgoing
-            ? transaction.senderAmount ?? transaction.amount
-            : transaction.recipientAmount ?? transaction.amount;
+            ? (transaction.senderAmount ?? transaction.amount)
+            : (transaction.recipientAmount ?? transaction.amount);
           const displayCurrency = isOutgoing
-            ? transaction.senderCurrency ?? transaction.currency
-            : transaction.recipientCurrency ?? transaction.currency;
-          const formattedAmount = new Intl.NumberFormat("en-US", {
+            ? (transaction.senderCurrency ?? transaction.currency)
+            : (transaction.recipientCurrency ?? transaction.currency);
+          const formattedAmount = new Intl.NumberFormat("sr-Latn-RS", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           }).format(displayAmount);
@@ -121,10 +128,10 @@ export default function RecentTransactions({
                 </Text>
                 <Text className="font-inria-light text-cgray">
                   {transaction.cardNumber
-                    ? "Placanje Karticom"
+                    ? "Plaćanje karticom"
                     : !isOutgoing
-                      ? "Uplata na racun"
-                      : "Odliv sa racuna"}
+                      ? "Uplata na račun"
+                      : "Odliv sa računa"}
                 </Text>
               </View>
             </View>
