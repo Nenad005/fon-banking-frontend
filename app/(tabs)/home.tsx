@@ -5,6 +5,7 @@ import QuickPayments from "@/components/home/quick-payments";
 import RecentTransactions from "@/components/home/recent-transactions";
 import { Text } from "@/components/text";
 import { useBankingData } from "@/hooks/useBankingData";
+import { router } from "expo-router";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 
 export default function HomePage() {
@@ -23,7 +24,12 @@ export default function HomePage() {
           <ActivityIndicator />
         </View>
       ) : (
-        <CardsSwiper accountsData={accounts}></CardsSwiper>
+        <CardsSwiper accountsData={accounts} onAccountPress={(account) => {
+          router.push({
+            pathname: "/products/account/[id]",
+            params: { id: account.accountId },
+          })
+        }}></CardsSwiper>
       )}
       <ScrollView>
         <View className="flex-1 px-5 w-full ">

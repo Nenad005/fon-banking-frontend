@@ -13,9 +13,13 @@ import CardsPagination from "./cards-pagination";
 export default function CardsSwiper({
   accountsData,
   cardsData,
+  onCardPress,
+  onAccountPress
 }: {
   accountsData?: Account[];
   cardsData?: Card[];
+  onCardPress?: (card: Card) => void;
+  onAccountPress?: (account: Account) => void;
 }) {
   const scrollX = useSharedValue(0);
 
@@ -106,6 +110,7 @@ export default function CardsSwiper({
                 index={index}
                 length={accountsData.length}
                 scrollX={scrollX}
+                onPress={() => onAccountPress?.(account)}
               />
             );
           }}
@@ -129,6 +134,7 @@ export default function CardsSwiper({
                 index={index}
                 length={cardsData.length}
                 scrollX={scrollX}
+                onPress={() => onCardPress?.(card)}
               />
             );
           }}

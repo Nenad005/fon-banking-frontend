@@ -19,11 +19,13 @@ export default function AccountItem({
   index,
   scrollX,
   length,
+  onPress
 }: {
   account: Account;
   index: number;
   scrollX: SharedValue<number>;
   length: number;
+  onPress?: (account: Account) => void;
 }) {
   let { width } = Dimensions.get("screen");
   width *= 0.9;
@@ -98,8 +100,9 @@ export default function AccountItem({
       className={cn("w-[90vw] pl-5", index === length - 1 ? "mx-5" : "")}
       style={reAnimatedStyle}
     >
-      <View
+      <Pressable
         key={account.accountId}
+        onPress={() => {onPress?.(account)}}
         className={cn(
           "p-4 rounded-3xl justify-between aspect-[1.6] overflow-hidden",
           (colorClassNames[account.color] ?? colorClassNames.magenta)
@@ -140,7 +143,7 @@ export default function AccountItem({
             />
           </Pressable>
         </View>
-      </View>
+      </Pressable>
     </Animated.View>
   );
 }

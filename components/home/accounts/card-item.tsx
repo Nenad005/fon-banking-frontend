@@ -3,7 +3,7 @@ import { Text } from "@/components/text";
 import { cn } from "@/lib/utils";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Dimensions, View } from "react-native";
+import { Dimensions, Pressable, View } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -16,11 +16,13 @@ export default function CardItem({
   index,
   scrollX,
   length,
+  onPress,
 }: {
   card: Card;
   index: number;
   scrollX: SharedValue<number>;
   length: number;
+  onPress?: () => void;
 }) {
   let { width } = Dimensions.get("screen");
   width *= 0.9;
@@ -86,8 +88,11 @@ export default function CardItem({
       className={cn("w-[90vw] pl-5", index === length - 1 ? "mx-5" : "")}
       style={reAnimatedStyle}
     >
-      <View
+      <Pressable
+        accessibilityRole={onPress ? "button" : undefined}
+        accessibilityLabel={onPress ? `Otvori ${card.cardType} karticu` : undefined}
         key={card.cardId}
+        onPress={onPress}
         className={cn("p-4 rounded-3xl relative justify-between aspect-[1.6]")}
       >
         <View className="absolute inset-0 bg-red-400 rounded-3xl overflow-hidden">
@@ -158,7 +163,7 @@ export default function CardItem({
             ></Image>
           )}
         </View>
-      </View>
+      </Pressable>
     </Animated.View>
   );
 }

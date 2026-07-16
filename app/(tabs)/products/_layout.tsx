@@ -21,15 +21,16 @@ export default function ProductsLayout() {
       <Stack.Screen
         name="account/[id]"
         options={{
-          title: "Detalji Računa", // Customize as needed
-          // headerShown is true by default in a Stack, so no need to declare it
+          title: "Detalji računa",
+          headerShown: false,
         }}
       />
 
       <Stack.Screen
         name="card/[id]"
         options={{
-          title: "Detalji Kartice",
+          title: "Detalji kartice",
+          headerShown: false,
         }}
       />
     </Stack>
