@@ -14,7 +14,8 @@ import { Platform } from "react-native";
 
 export const API_BASE_URL =
   // process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
-  process.env.EXPO_PUBLIC_API_URL ?? "http://192.168.1.100:8000/api/v1";
+  // process.env.EXPO_PUBLIC_API_URL ?? "http://192.168.1.100:8000/api/v1";
+  process.env.EXPO_PUBLIC_API_URL ?? "http://192.168.0.111:8000/api/v1";
   // process.env.EXPO_PUBLIC_API_URL ?? "http://10.172.245.145:8000/api/v1";
 
 const DEVICE_ID_KEY = "fon_bank_device_id";
@@ -61,6 +62,7 @@ interface AuthContextType {
   activateAccount: (qrCodeData: string) => Promise<ActivateResponse>;
   setupPin: (pin: string) => Promise<AuthResponse>;
   login: (pin: string) => Promise<boolean>;
+  confirmPin: (pin: string) => Promise<boolean>;
   logout: () => Promise<void>;
   clearSecureStore: () => Promise<void>;
 }
@@ -260,6 +262,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
+    const confirmPin = async (pin: string): Promise<boolean> => {
+      try {
+        const response = await api.post<{ status: ApiStatus }>(
+          "/auth/confirm-pin",
+          { pin },
+        );
+
+        return response.data.status === "success";
+      } catch (error) {
+        throw new Error(getApiErrorMessage(error));
+      }
+    };
+
     const clearSecureStore = async () => {
       try {
         await Promise.all([
@@ -286,6 +301,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       activateAccount,
       setupPin,
       login,
+      confirmPin,
       logout,
       clearSecureStore,
     };

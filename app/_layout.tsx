@@ -3,20 +3,17 @@ import Feather from "@expo/vector-icons/Feather";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { cssInterop } from "nativewind";
 import { useEffect } from "react";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import {
-  Alert,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -88,12 +85,16 @@ export default function RootLayout() {
   }
 
   return (
-    <KeyboardProvider>
-      <AuthProvider>
-        <GlobalWipeButton />
-        <RootNavigator />
-      </AuthProvider>
-    </KeyboardProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <KeyboardProvider>
+        <BottomSheetModalProvider>
+          <AuthProvider>
+            <GlobalWipeButton />
+            <RootNavigator />
+          </AuthProvider>
+        </BottomSheetModalProvider>
+      </KeyboardProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -140,23 +141,35 @@ function RootNavigator() {
   const { authStatus } = useAuth();
   const router = useRouter();
   const segments = useSegments();
-  console.log(segments)
+  console.log(segments);
   const currentGroup = segments[0];
   const currentScreen = segments[1];
   const isLandingScreen = !currentGroup;
 
   useEffect(() => {
-    if (authStatus === "pending_activation" && !isLandingScreen && currentScreen !== "activation") {
+    if (
+      authStatus === "pending_activation" &&
+      !isLandingScreen &&
+      currentScreen !== "activation"
+    ) {
       router.push("/activation");
       return;
     }
 
-    if (authStatus === "pending_pin" && !isLandingScreen && currentScreen !== "pin-setup") {
+    if (
+      authStatus === "pending_pin" &&
+      !isLandingScreen &&
+      currentScreen !== "pin-setup"
+    ) {
       router.push("/pin-setup");
       return;
     }
 
-    if (authStatus === "pending_session" && !isLandingScreen && currentScreen !== "login") {
+    if (
+      authStatus === "pending_session" &&
+      !isLandingScreen &&
+      currentScreen !== "login"
+    ) {
       if (currentGroup === "(tabs)") {
         router.replace("/");
       } else {
