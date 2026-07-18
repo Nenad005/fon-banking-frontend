@@ -1,8 +1,7 @@
 import Entypo from "@expo/vector-icons/Entypo";
-import { useIsFocused } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Link, RelativePathString } from "expo-router";
+import { Link, RelativePathString, useIsFocused } from "expo-router";
 import { cssInterop } from "nativewind";
 import { Pressable, StatusBar, StyleSheet, View } from "react-native";
 import colors from "tailwindcss/colors";

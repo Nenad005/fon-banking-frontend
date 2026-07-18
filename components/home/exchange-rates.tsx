@@ -36,7 +36,7 @@ export default function ExhangeRates({
   base: Currency;
   quoutes: Currency[];
 }) {
-  const exchangeRates = base == "RSD" ? rsdExchangeRates : eurExchangeRates;
+  const exchangeRates = base === "RSD" ? rsdExchangeRates : eurExchangeRates;
   const filteredExchangeRates = exchangeRates.filter((rate) => {
     return quoutes.includes(rate.quote);
   });

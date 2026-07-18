@@ -1,5 +1,5 @@
 import { Account, Card } from "@/hooks/useBankingData";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { View, ViewToken, ViewabilityConfigCallbackPair } from "react-native";
 import Animated, {
   useAnimatedScrollHandler,
@@ -14,7 +14,7 @@ export default function CardsSwiper({
   accountsData,
   cardsData,
   onCardPress,
-  onAccountPress
+  onAccountPress,
 }: {
   accountsData?: Account[];
   cardsData?: Card[];
@@ -32,6 +32,8 @@ export default function CardsSwiper({
   const viewabilityConfig = {
     itemVisiblePercentThreshold: 50,
   };
+
+  const [paginationIndex, setPaginationIndex] = useState(0);
 
   const onViewableItemsChanged = ({
     viewableItems,
@@ -53,11 +55,9 @@ export default function CardsSwiper({
       ? cardsData.length
       : 0;
 
-  const viewabilityConfigCallbackPairs = useRef<
+  const [viewabilityConfigCallbackPairs] = useState<
     ViewabilityConfigCallbackPair[]
-  >([{ viewabilityConfig, onViewableItemsChanged }]);
-
-  const [paginationIndex, setPaginationIndex] = useState(0);
+  >(() => [{ viewabilityConfig, onViewableItemsChanged }]);
 
   const accountColorClassNamesDict: Record<
     string,
@@ -100,9 +100,7 @@ export default function CardsSwiper({
           pagingEnabled={true}
           horizontal
           onScroll={onScrollHandle}
-          viewabilityConfigCallbackPairs={
-            viewabilityConfigCallbackPairs.current
-          }
+          viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
           renderItem={({ item: account, index }) => {
             return (
               <AccountItem
@@ -124,9 +122,7 @@ export default function CardsSwiper({
           pagingEnabled={true}
           horizontal
           onScroll={onScrollHandle}
-          viewabilityConfigCallbackPairs={
-            viewabilityConfigCallbackPairs.current
-          }
+          viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
           renderItem={({ item: card, index }) => {
             return (
               <CardItem

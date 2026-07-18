@@ -1,9 +1,8 @@
 import { AnimatedSwitch } from "@/components/animated-switch";
 import { Text } from "@/components/text";
 import { useAuth } from "@/context/AuthContext";
-import { Ionicons, FontAwesome, SimpleLineIcons } from "@expo/vector-icons";
-import { useIsFocused } from "@react-navigation/native";
-import { router } from "expo-router";
+import { Ionicons, SimpleLineIcons } from "@expo/vector-icons";
+import { router, useIsFocused } from "expo-router";
 import { Pressable, StatusBar, View } from "react-native";
 
 export default function SettingsPage() {

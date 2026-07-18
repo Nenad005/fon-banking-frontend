@@ -1,7 +1,6 @@
 import QrScanner from "@/components/qr-scanner";
 import { submitQrScan } from "@/lib/qr-scanner-navigation";
 import { useRouter } from "expo-router";
-import {StatusBar, View} from "react-native"
 
 export default function QrScannerPage() {
   const router = useRouter();

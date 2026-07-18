@@ -1,10 +1,10 @@
-import type { Router } from "expo-router";
+import type { ImperativeRouter } from "expo-router";
 
 type ScanHandler = (scannedValue: string) => void;
 
 let scanHandler: ScanHandler | null = null;
 
-export function openQrScanner(router: Router, onScanned: ScanHandler) {
+export function openQrScanner(router: ImperativeRouter, onScanned: ScanHandler) {
   scanHandler = onScanned;
   router.push("/qr-scanner");
 }

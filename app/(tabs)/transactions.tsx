@@ -9,7 +9,7 @@ import {
   TransactionCategory,
 } from "@/lib/transaction-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   NativeScrollEvent,
@@ -281,10 +281,6 @@ export default function TransactionsPage() {
     return groups;
   }, [visibleTransactions]);
 
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [categoryFilter, extraFilter, filter, searchQuery]);
-
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const isNearBottom =
@@ -322,14 +318,22 @@ export default function TransactionsPage() {
         <View className="h-11 flex-row items-center rounded-[15px] border-2 border-[#d94c9f] px-3">
           <TextInput
             className="h-11 flex-1 font-inria-light text-lg text-[#303030]"
-            onChangeText={setSearchQuery}
+            onChangeText={(value) => {
+              setSearchQuery(value);
+              setVisibleCount(PAGE_SIZE);
+            }}
             placeholder="Pretraži transakcije"
             placeholderTextColor="#929292"
             value={searchQuery}
           />
           <Pressable
             hitSlop={10}
-            onPress={() => searchQuery && setSearchQuery("")}
+            onPress={() => {
+              if (searchQuery) {
+                setSearchQuery("");
+                setVisibleCount(PAGE_SIZE);
+              }
+            }}
           >
             <Ionicons
               name={searchQuery ? "close" : "search-outline"}
@@ -350,7 +354,10 @@ export default function TransactionsPage() {
                   "rounded-full px-4 py-1.5",
                   isSelected ? "bg-[#60c3ad]" : "bg-[#eeeeee]",
                 )}
-                onPress={() => setFilter(filterOption.value)}
+                onPress={() => {
+                  setFilter(filterOption.value);
+                  setVisibleCount(PAGE_SIZE);
+                }}
               >
                 <Text
                   className={cn(
@@ -388,6 +395,7 @@ export default function TransactionsPage() {
                   onPress={() => {
                     setExtraFilter("all");
                     setCategoryFilter("all");
+                    setVisibleCount(PAGE_SIZE);
                   }}
                 >
                   <Text className="text-sm text-[#d94c9f]">Poništi</Text>
@@ -406,7 +414,10 @@ export default function TransactionsPage() {
               ).map((item) => (
                 <Pressable
                   key={item.value}
-                  onPress={() => setExtraFilter(item.value)}
+                  onPress={() => {
+                    setExtraFilter(item.value);
+                    setVisibleCount(PAGE_SIZE);
+                  }}
                   className={cn(
                     "mr-2 rounded-full border px-3 py-1.5",
                     extraFilter === item.value
@@ -430,7 +441,10 @@ export default function TransactionsPage() {
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <Pressable
-                onPress={() => setCategoryFilter("all")}
+                onPress={() => {
+                  setCategoryFilter("all");
+                  setVisibleCount(PAGE_SIZE);
+                }}
                 className={cn(
                   "mr-2 flex-row items-center gap-1.5 rounded-full border px-3 py-1.5",
                   categoryFilter === "all"
@@ -458,7 +472,10 @@ export default function TransactionsPage() {
                 return (
                   <Pressable
                     key={category.value}
-                    onPress={() => setCategoryFilter(category.value)}
+                    onPress={() => {
+                      setCategoryFilter(category.value);
+                      setVisibleCount(PAGE_SIZE);
+                    }}
                     className={cn(
                       "mr-2 flex-row items-center gap-1.5 rounded-full border px-3 py-1.5",
                       isSelected

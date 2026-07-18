@@ -1,11 +1,9 @@
 import { cn } from "@/lib/utils";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Tabs, useSegments } from "expo-router";
+import { Tabs } from "expo-router";
 
 export default function TabsLayout() {
-  const segments = useSegments();
-
   // const isNestedProductScreen =
   // segments.includes("account") || segments.includes("card");
 

@@ -7,7 +7,7 @@ import {
 } from "@/lib/transaction-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo, useState } from "react";
-import { FlatList, Pressable, View, useWindowDimensions } from "react-native";
+import { Pressable, View, useWindowDimensions } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,

@@ -181,7 +181,7 @@ function RootNavigator() {
     if (authStatus === "authenticated" && currentGroup === "(auth)") {
       router.replace("/home");
     }
-  }, [authStatus, currentGroup, currentScreen, router]);
+  }, [authStatus, currentGroup, currentScreen, isLandingScreen, router]);
 
   if (authStatus === "loading") {
     return null;
