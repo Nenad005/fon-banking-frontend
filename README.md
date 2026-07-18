@@ -10,11 +10,30 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Start the Laravel API from `../fon-banking-backend`
 
    ```bash
-   npx expo start
+   php artisan serve --host=0.0.0.0
    ```
+
+3. Start the app
+
+   ```bash
+   npm start
+   ```
+
+The start script detects the computer's active LAN IPv4 address and configures
+`EXPO_PUBLIC_API_URL` before launching Expo. The mobile device and computer must
+be connected to the same local network.
+
+If automatic detection selects the wrong network interface, provide the address
+explicitly:
+
+```bash
+LAN_IP=192.168.1.100 npm start
+```
+
+Use `npm run start:manual` to launch Expo without automatic API configuration.
 
 In the output, you'll find options to open the app in a
 
