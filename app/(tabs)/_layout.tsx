@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Tabs } from "expo-router";
+import { PlatformPressable } from "expo-router/react-navigation";
 
 export default function TabsLayout() {
   // const isNestedProductScreen =
@@ -13,6 +14,9 @@ export default function TabsLayout() {
         headerTitleContainerStyle: { padding: 0 },
         tabBarActiveTintColor: "#004B7C",
         tabBarInactiveTintColor: "#505050",
+        tabBarButton: (props) => (
+          <PlatformPressable {...props} android_ripple={{color: "#f1f1f1"}}/>
+        )
       }}
     >
       <Tabs.Screen

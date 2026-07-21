@@ -1,4 +1,4 @@
-import { create as axiosCreate, isAxiosError } from "axios";
+import axios, { create as axiosCreate, isAxiosError } from "axios";
 import * as SecureStore from "expo-secure-store";
 import * as Application from 'expo-application';
 import * as Device from 'expo-device';
@@ -12,7 +12,7 @@ import {
 } from "react";
 import { Platform } from "react-native";
 
-const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL;
+const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL ?? 'https://fon-banking.duckdns.org/api/v1';
 
 if (!apiBaseUrl) {
   throw new Error("EXPO_PUBLIC_API_URL is not configured.");
@@ -77,6 +77,7 @@ export const api = axiosCreate({
     Accept: "application/json",
     "Content-Type": "application/json",
   },
+  timeoutErrorMessage: API_BASE_URL
 });
 
 const createDeviceIdentifier = async () => {
@@ -170,6 +171,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const activateAccount = async (qrCodeData: string): Promise<ActivateResponse> => {
+      console.log(API_BASE_URL, axios.getUri())
       console.log(authStatus)
       try {
         const deviceIdentifier = await getOrCreateDeviceIdentifier();
