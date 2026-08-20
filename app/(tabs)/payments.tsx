@@ -1,10 +1,12 @@
 import QuickPayments from "@/components/home/quick-payments";
 import { Text } from "@/components/text";
+import { useApi } from "@/context/useApi";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { isAxiosError } from "axios";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useBankingData } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
@@ -46,6 +48,7 @@ function PaymentField({
 
 export default function PaymentsPage() {
   const router = useRouter();
+  const api = useApi();
   const [recipientName, setRecipientName] = useState("");
   const [recipientAccount, setRecipientAccount] = useState("");
   const [model, setModel] = useState("");
@@ -53,12 +56,79 @@ export default function PaymentsPage() {
   const [amount, setAmount] = useState("");
   const [paymentCode, setPaymentCode] = useState("");
   const [purpose, setPurpose] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { accounts, accountIds, transactions } = useBankingData();
+  const { accounts, accountIds, transactions, refetch } = useBankingData();
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>((accounts && accounts.length > 0 ) ? accounts[0].accountId : null);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const selectedAccount =
     accounts.find((account) => account.accountId === selectedAccountId) ?? accounts[0];
+
+  const handlePayment = async () => {
+    if (isSubmitting) return;
+
+    const parsedAmount = Number(amount.replace(",", "."));
+    const parsedModel = model.trim() ? Number(model) : null;
+
+    if (!selectedAccount) {
+      Alert.alert("Plaćanje nije moguće", "Izaberite račun sa kog plaćate.");
+      return;
+    }
+
+    if (!recipientName.trim() || !recipientAccount.trim()) {
+      Alert.alert("Nedostaju podaci", "Unesite naziv primaoca i broj računa.");
+      return;
+    }
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      Alert.alert("Neispravan iznos", "Unesite iznos veći od nule.");
+      return;
+    }
+
+    if (parsedModel !== null && !Number.isInteger(parsedModel)) {
+      Alert.alert("Neispravan model", "Model mora biti ceo broj.");
+      return;
+    }
+
+    if (recipientAccount.trim() === selectedAccount.accountId) {
+      Alert.alert("Neispravan račun", "Ne možete poslati novac na isti račun.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const accountId = recipientAccount.trim();
+      await api.post("/transactions/transfer", {
+        senderAccount: selectedAccount.accountId,
+        recipientAccount: accountId,
+        recipientName: recipientName.trim(),
+        amount: parsedAmount,
+        currency: selectedAccount.currency,
+        paymentPurpose: purpose.trim() || undefined,
+        paymentCode: paymentCode.trim() || undefined,
+        model: parsedModel,
+        referenceNumber: referenceNumber.trim() || undefined,
+      });
+
+      setRecipientName("");
+      setRecipientAccount("");
+      setModel("");
+      setReferenceNumber("");
+      setAmount("");
+      setPaymentCode("");
+      setPurpose("");
+      void refetch();
+      Alert.alert("Plaćanje uspešno", "Novac je uspešno poslat.");
+    } catch (error) {
+      const message = isAxiosError<{ message?: string }>(error)
+        ? error.response?.data?.message ?? error.message
+        : "Plaćanje trenutno nije moguće.";
+      Alert.alert("Plaćanje nije uspelo", message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <View className="flex-1 bg-white pt-14">
@@ -190,9 +260,22 @@ export default function PaymentsPage() {
           />
         </View>
 
-        <Pressable className="flex-row items-center justify-center gap-3 rounded-2xl bg-ccyan py-4">
-          <Text className="text-2xl font-inria-bold text-white">Plati</Text>
-          <Ionicons name="arrow-forward" size={25} color="white" />
+        <Pressable
+          className={cn(
+            "flex-row items-center justify-center gap-3 rounded-2xl bg-ccyan py-4",
+            isSubmitting && "opacity-60",
+          )}
+          disabled={isSubmitting}
+          onPress={handlePayment}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <>
+              <Text className="text-2xl font-inria-bold text-white">Plati</Text>
+              <Ionicons name="arrow-forward" size={25} color="white" />
+            </>
+          )}
         </Pressable>
       </KeyboardAwareScrollView>
     </View>

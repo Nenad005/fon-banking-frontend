@@ -1,19 +1,21 @@
-import ContentHeader from "@/components/content-header";
 import { Text } from "@/components/text";
 import { Transaction, useBankingData } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
 import {
-  getTransactionCategory,
   getTransactionIconName,
   TRANSACTION_CATEGORIES,
   TransactionCategory,
 } from "@/lib/transaction-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useMemo, useState } from "react";
+import { File, Paths } from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import { useDeferredValue, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   TextInput,
@@ -35,7 +37,7 @@ const MONTH_LABELS = [
   "Dec",
 ];
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
 
 type TransactionFilter = "all" | "income" | "expense";
 type ExtraFilter = "all" | "7days" | "30days" | "card" | "pending";
@@ -157,7 +159,7 @@ function MonthlyOverview({
             Prilivi i odlivi u poslednjih 6 meseci
           </Text>
         </View>
-        <Ionicons name="stats-chart-outline" size={24} color="#004B7C" />
+        {/* <Ionicons name="stats-chart-outline" size={24} color="#004B7C" /> */}
       </View>
 
       <View className="mt-5 flex-row items-end justify-between">
@@ -203,8 +205,6 @@ function MonthlyOverview({
 }
 
 export default function TransactionsPage() {
-  const { transactions, accountIds, isLoading, errorMessage } =
-    useBankingData();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<TransactionFilter>("all");
   const [extraFilter, setExtraFilter] = useState<ExtraFilter>("all");
@@ -212,57 +212,32 @@ export default function TransactionsPage() {
     TransactionCategory | "all"
   >("all");
   const [filtersVisible, setFiltersVisible] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-
-  const filteredTransactions = useMemo(() => {
-    const query = searchQuery.trim().toLocaleLowerCase();
-    const now = new Date();
-
-    return transactions.filter((transaction) => {
-      const isExpense = accountIds.has(transaction.senderAccount);
-      const matchesFilter =
-        filter === "all" ||
-        (filter === "expense" && isExpense) ||
-        (filter === "income" && !isExpense);
-      const age =
-        now.getTime() - new Date(transaction.transactionTime).getTime();
-      const matchesExtra =
-        extraFilter === "all" ||
-        (extraFilter === "7days" && age <= 7 * 86400000) ||
-        (extraFilter === "30days" && age <= 30 * 86400000) ||
-        (extraFilter === "card" && Boolean(transaction.cardNumber)) ||
-        (extraFilter === "pending" && transaction.status === "na_cekanju");
-      const matchesCategory =
-        categoryFilter === "all" ||
-        getTransactionCategory(transaction, accountIds) === categoryFilter;
-      const searchableText = [
-        transaction.recipientName,
-        transaction.senderAccount,
-        transaction.recipientAccount,
-        transaction.paymentPurpose,
-        transaction.paymentCode,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLocaleLowerCase();
-
-      return (
-        matchesFilter &&
-        matchesExtra &&
-        matchesCategory &&
-        (!query || searchableText.includes(query))
-      );
-    });
-  }, [
-    accountIds,
-    categoryFilter,
-    extraFilter,
-    filter,
-    searchQuery,
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const {
     transactions,
-  ]);
+    accountIds,
+    isLoading,
+    isLoadingMoreTransactions,
+    hasMoreTransactions,
+    transactionTotal,
+    errorMessage,
+    loadMoreTransactions,
+    getAllTransactions,
+  } = useBankingData({
+    search: deferredSearchQuery,
+    direction: filter === "all" ? undefined : filter,
+    period:
+      extraFilter === "7days" || extraFilter === "30days"
+        ? extraFilter
+        : undefined,
+    method:
+      extraFilter === "card" || extraFilter === "pending"
+        ? extraFilter
+        : undefined,
+    category: categoryFilter === "all" ? undefined : categoryFilter,
+    perPage: PAGE_SIZE,
+  });
 
-  const visibleTransactions = filteredTransactions.slice(0, visibleCount);
   const groupedTransactions = useMemo(() => {
     const groups: {
       key: string;
@@ -270,7 +245,7 @@ export default function TransactionsPage() {
       transactions: Transaction[];
     }[] = [];
 
-    visibleTransactions.forEach((transaction) => {
+    transactions.forEach((transaction) => {
       const group = getTransactionGroup(transaction.transactionTime);
       const previousGroup = groups.at(-1);
       if (previousGroup?.key === group.key)
@@ -279,17 +254,50 @@ export default function TransactionsPage() {
     });
 
     return groups;
-  }, [visibleTransactions]);
+  }, [transactions]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const isNearBottom =
       contentOffset.y + layoutMeasurement.height >= contentSize.height - 180;
 
-    if (isNearBottom && visibleCount < filteredTransactions.length) {
-      setVisibleCount((count) =>
-        Math.min(count + PAGE_SIZE, filteredTransactions.length),
+    if (isNearBottom && hasMoreTransactions && !isLoadingMoreTransactions) {
+      void loadMoreTransactions();
+    }
+  };
+
+  const downloadTransactions = async () => {
+    try {
+      const allTransactions = await getAllTransactions();
+      const escapeCsv = (value: string | number | null) =>
+        `"${String(value ?? "").replaceAll('"', '""')}"`;
+      const rows = allTransactions.map((transaction) =>
+        [
+          transaction.transactionTime,
+          transaction.senderAccount,
+          transaction.recipientAccount,
+          transaction.recipientName,
+          transaction.paymentPurpose,
+          transaction.amount,
+          transaction.currency,
+          transaction.status,
+        ].map(escapeCsv).join(","),
       );
+      const csv = [
+        "Date,Sender account,Recipient account,Recipient,Purpose,Amount,Currency,Status",
+        ...rows,
+      ].join("\n");
+
+      const file = new File(Paths.cache, "transactions.csv");
+      file.create({ overwrite: true });
+      file.write(`\uFEFF${csv}`);
+      await Sharing.shareAsync(file.uri, {
+        mimeType: "text/csv",
+        UTI: "public.comma-separated-values-text",
+      });
+    } catch (error) {
+      console.error("Error downloading transactions:", error);
+      Alert.alert("Greška", "CSV fajl nije mogao da bude preuzet.");
     }
   };
 
@@ -301,11 +309,27 @@ export default function TransactionsPage() {
 
   return (
     <View className="flex-1 bg-white pt-12">
-      <ContentHeader
+      {/* <ContentHeader
         title="Transakcije"
         subtitle="Pregled svih priliva i odliva"
         className="border-0 px-5 pb-6"
-      />
+      /> */}
+      <View className="flex-row items-start justify-between pb-11 px-5 pb-6">
+          <View>
+            <Text className="text-3xl leading-9 text-black">
+              Transakcije
+            </Text>
+            <Text className="font-inria-light text-lg text-cgray">
+              Pregled svih priliva i odliva
+            </Text>
+          </View>
+          <Pressable
+            className="mt-1 h-[50px] w-[50px] items-center justify-center rounded-[18px]"
+            onPress={() => void downloadTransactions()}
+          >
+            <Ionicons name="download-outline" size={30} color="#D057A0" />
+          </Pressable>
+        </View>
       <ScrollView
         contentContainerClassName="px-3 pb-10"
         keyboardShouldPersistTaps="handled"
@@ -318,10 +342,7 @@ export default function TransactionsPage() {
         <View className="h-11 flex-row items-center rounded-[15px] border-2 border-[#d94c9f] px-3">
           <TextInput
             className="h-11 flex-1 font-inria-light text-lg text-[#303030]"
-            onChangeText={(value) => {
-              setSearchQuery(value);
-              setVisibleCount(PAGE_SIZE);
-            }}
+            onChangeText={setSearchQuery}
             placeholder="Pretraži transakcije"
             placeholderTextColor="#929292"
             value={searchQuery}
@@ -331,7 +352,6 @@ export default function TransactionsPage() {
             onPress={() => {
               if (searchQuery) {
                 setSearchQuery("");
-                setVisibleCount(PAGE_SIZE);
               }
             }}
           >
@@ -356,7 +376,6 @@ export default function TransactionsPage() {
                 )}
                 onPress={() => {
                   setFilter(filterOption.value);
-                  setVisibleCount(PAGE_SIZE);
                 }}
               >
                 <Text
@@ -395,7 +414,6 @@ export default function TransactionsPage() {
                   onPress={() => {
                     setExtraFilter("all");
                     setCategoryFilter("all");
-                    setVisibleCount(PAGE_SIZE);
                   }}
                 >
                   <Text className="text-sm text-[#d94c9f]">Poništi</Text>
@@ -416,7 +434,6 @@ export default function TransactionsPage() {
                   key={item.value}
                   onPress={() => {
                     setExtraFilter(item.value);
-                    setVisibleCount(PAGE_SIZE);
                   }}
                   className={cn(
                     "mr-2 rounded-full border px-3 py-1.5",
@@ -443,7 +460,6 @@ export default function TransactionsPage() {
               <Pressable
                 onPress={() => {
                   setCategoryFilter("all");
-                  setVisibleCount(PAGE_SIZE);
                 }}
                 className={cn(
                   "mr-2 flex-row items-center gap-1.5 rounded-full border px-3 py-1.5",
@@ -474,7 +490,6 @@ export default function TransactionsPage() {
                     key={category.value}
                     onPress={() => {
                       setCategoryFilter(category.value);
-                      setVisibleCount(PAGE_SIZE);
                     }}
                     className={cn(
                       "mr-2 flex-row items-center gap-1.5 rounded-full border px-3 py-1.5",
@@ -506,7 +521,7 @@ export default function TransactionsPage() {
         <View className="mb-4 flex-row items-center justify-between">
           <Text className="text-xl text-black">Transakcije</Text>
           <Text className="font-inria-light text-base text-cgray">
-            {filteredTransactions.length} rezultata
+            {transactionTotal} rezultata
           </Text>
         </View>
 
@@ -518,7 +533,7 @@ export default function TransactionsPage() {
             <ActivityIndicator color="#004B7C" />
           </View>
         ) : null}
-        {!isLoading && filteredTransactions.length === 0 ? (
+        {!isLoading && transactions.length === 0 ? (
           <View className="items-center rounded-3xl bg-[#f5f7f8] px-5 py-9">
             <Ionicons name="receipt-outline" size={36} color="#929292" />
             <Text className="pt-3 text-center text-lg text-cgray">
@@ -606,7 +621,7 @@ export default function TransactionsPage() {
           </View>
         ))}
 
-        {visibleCount < filteredTransactions.length ? (
+        {isLoadingMoreTransactions ? (
           <View className="items-center py-4">
             <ActivityIndicator color="#60C3AD" />
           </View>

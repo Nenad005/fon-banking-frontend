@@ -1,12 +1,43 @@
 import { AnimatedSwitch } from "@/components/animated-switch";
 import { Text } from "@/components/text";
 import { useAuth } from "@/context/AuthContext";
+import { useApi } from "@/context/useApi";
 import { Ionicons, SimpleLineIcons } from "@expo/vector-icons";
 import { router, useIsFocused } from "expo-router";
+import { useEffect, useState } from "react";
 import { Pressable, StatusBar, View } from "react-native";
+
+type UserProfile = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+};
 
 export default function SettingsPage() {
   const { logout } = useAuth();
+  const api = useApi();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileError, setProfileError] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadProfile = async () => {
+      try {
+        const response = await api.get<UserProfile>("/user", {
+          signal: controller.signal,
+        });
+        setProfile(response.data);
+      } catch {
+        if (!controller.signal.aborted) setProfileError(true);
+      }
+    };
+
+    void loadProfile();
+
+    return () => controller.abort();
+  }, [api]);
 
   const handleLogout = async () => {
     await logout();
@@ -31,9 +62,25 @@ export default function SettingsPage() {
           <View className="bg-[#F2F2F2] h-24 w-24 rounded-full justify-center items-center">
             <Ionicons size={35} color={"#D057A0"} name="person-outline"/>  
           </View>
-          <Text className="text-white font-inria-bold top-2 text-2xl">Marko Nenadović</Text>
-          <Text className="text-[#BCF6EA] font-inria top-2 text-[14px]">mn20240174@student.fon.bg.ac.rs</Text>
-          <Text className="text-[#BCF6EA] font-inria-bold top-2 text-[14px]">+381 65 4546 204</Text>
+          {profile ? (
+            <>
+              <Text className="text-white font-inria-bold top-2 text-2xl">
+                {profile.firstName} {profile.lastName}
+              </Text>
+              <Text className="text-[#BCF6EA] font-inria top-2 text-[14px]">
+                {profile.email}
+              </Text>
+              <Text className="text-[#BCF6EA] font-inria-bold top-2 text-[14px]">
+                {profile.phoneNumber}
+              </Text>
+            </>
+          ) : (
+            <Text className="text-white font-inria top-2 text-[14px]">
+              {profileError
+                ? "Podaci o profilu nisu dostupni."
+                : "Učitavanje profila..."}
+            </Text>
+          )}
         </View>
       </View>
       <View className="flex-1 px-5 pt-5 gap-8">
