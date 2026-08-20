@@ -1,33 +1,57 @@
-import {
-  Currency,
-  eurExchangeRates,
-  rsdExchangeRates,
-} from "@/assets/data/homePageData";
+import { Currency } from "@/assets/data/homePageData";
 import { Text } from "@/components/text";
+import { useApi } from "@/context/useApi";
 import { cn } from "@/lib/utils";
-import { Image, View } from "react-native";
+import {
+  BottomSheetBackdrop,
+  BottomSheetBackdropProps,
+  BottomSheetModal,
+  BottomSheetScrollView,
+} from "@gorhom/bottom-sheet";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Image, Pressable, View } from "react-native";
 
 const FLAG_CDN_URL = "https://flagcdn.com/w80/";
-const FORMAT = ".png";
 
-interface CountryFlagProps {
-  isoCode: string;
-  size: number;
-  className?: string;
-}
+type ExchangeRate = {
+  base: Currency;
+  quote: Currency;
+  name: string;
+  countryCode: string;
+  date: string;
+  buy: number;
+  middle: number;
+  sell: number;
+};
 
-const CountryFlag = ({ isoCode, size, className }: CountryFlagProps) => {
+type ExchangeRateResponse = {
+  base: Currency;
+  rates: ExchangeRate[];
+};
+
+function CountryFlag({
+  countryCode,
+  size = 22,
+}: {
+  countryCode: string;
+  size?: number;
+}) {
   return (
     <Image
-      source={{ uri: FLAG_CDN_URL + isoCode.toLocaleLowerCase() + FORMAT }}
+      source={{ uri: `${FLAG_CDN_URL}${countryCode}.png` }}
       style={{ width: size * 1.6, height: size }}
-      className={cn("", className)}
+      className="rounded-md"
       resizeMode="contain"
     />
   );
-};
+}
 
-export default function ExhangeRates({
+const formatter = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 4,
+  maximumFractionDigits: 4,
+});
+
+export default function ExchangeRates({
   className = "",
   base,
   quoutes,
@@ -36,76 +60,145 @@ export default function ExhangeRates({
   base: Currency;
   quoutes: Currency[];
 }) {
-  const exchangeRates = base === "RSD" ? rsdExchangeRates : eurExchangeRates;
-  const filteredExchangeRates = exchangeRates.filter((rate) => {
-    return quoutes.includes(rate.quote);
-  });
+  const api = useApi();
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const [rates, setRates] = useState<ExchangeRate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  console.log(filteredExchangeRates);
+  useEffect(() => {
+    let isActive = true;
+
+    const loadRates = async () => {
+      try {
+        setIsLoading(true);
+        setErrorMessage(null);
+        const response = await api.get<ExchangeRateResponse>(
+          "/exchange-rates",
+          {
+            params: { base },
+          },
+        );
+
+        if (!isActive) return;
+        setRates(response.data.rates);
+      } catch {
+        if (isActive) setErrorMessage("Kursna lista trenutno nije dostupna.");
+      } finally {
+        if (isActive) setIsLoading(false);
+      }
+    };
+
+    void loadRates();
+    return () => {
+      isActive = false;
+    };
+  }, [api, base]);
+
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        opacity={0.45}
+      />
+    ),
+    [],
+  );
+
+  const visibleRates = rates.filter((rate) => quoutes.includes(rate.quote));
 
   return (
     <View className={cn("pb-9", className)}>
-      <View className="flex-row justify-between items-end ">
-        <Text className="text-cgray text-2xl">Kursna lista</Text>
-        <Text className="text-ctirquise font-inter font-medium text-[14px] pb-1">
-          Prikazi sve
-        </Text>
+      <View className="flex-row items-end justify-between">
+        <Text className="text-2xl text-cgray">Kursna lista</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Prikazi sve podrzane valute"
+          hitSlop={10}
+          onPress={() => bottomSheetRef.current?.present()}
+        >
+          <Text className="pb-1 font-inter text-[14px] font-medium text-ctirquise">
+            Prikazi sve
+          </Text>
+        </Pressable>
       </View>
+
       <View className="gap-3 pt-5">
-        <View className="flex-row w-full">
-          <View className="w-[40%] bg-red-">
-            <Text className="text-cen text-cmagenta text-lg">Valuta</Text>
-          </View>
-          <Text className="text-center w-[20%] bg-red- text-cmagenta text-lg">
-            Kupovni
-          </Text>
-          <Text className="text-center w-[20%] bg-red- text-cmagenta text-lg">
-            Srednji
-          </Text>
-          <Text className="text-center w-[20%] bg-red- text-cmagenta text-lg">
-            Prodajni
+        <RateHeader />
+
+        {isLoading ? <ActivityIndicator className="my-8" /> : null}
+        {errorMessage ? (
+          <Text className="py-6 text-center text-cgray">{errorMessage}</Text>
+        ) : null}
+        {visibleRates.map((rate) => (
+          <RateRow key={rate.quote} rate={rate} />
+        ))}
+      </View>
+
+      <BottomSheetModal
+        ref={bottomSheetRef}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={{ borderRadius: 32 }}
+        enableDynamicSizing={false}
+        handleIndicatorStyle={{ width: 48, backgroundColor: "#d1d5db" }}
+        snapPoints={["75%"]}
+      >
+        <View className="px-5 pb-4 pt-1">
+          <Text className="text-2xl text-cgray">Kompletna kursna lista</Text>
+          <Text className="pt-1 font-inria-light text-base text-cgray">
+            Kupovni, srednji i prodajni kurs
           </Text>
         </View>
-        {filteredExchangeRates.map((rate, index) => {
-          const baseRate = 1 / rate.rate;
-          const buyPrice = Math.floor(baseRate * 0.95 * 100) / 100;
-          const sellPrice = Math.floor(baseRate * 1.05 * 100) / 100;
+        <BottomSheetScrollView
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 36 }}
+        >
+          <RateHeader />
+          {isLoading ? <ActivityIndicator className="my-8" /> : null}
+          {errorMessage ? (
+            <Text className="py-6 text-center text-cgray">{errorMessage}</Text>
+          ) : null}
+          {rates.map((rate) => (
+            <RateRow key={rate.quote} rate={rate} />
+          ))}
+        </BottomSheetScrollView>
+      </BottomSheetModal>
+    </View>
+  );
+}
 
-          const formatter = new Intl.NumberFormat("en-US", {
-            minimumFractionDigits: 4,
-            maximumFractionDigits: 4,
-          });
+function RateHeader() {
+  return (
+    <View className="w-full flex-row pb-5 pt-2">
+      <Text className="w-[40%] text-lg text-cmagenta">Valuta</Text>
+      <Text className="w-[20%] text-center text-lg text-cmagenta">Kupovni</Text>
+      <Text className="w-[20%] text-center text-lg text-cmagenta">Srednji</Text>
+      <Text className="w-[20%] text-center text-lg text-cmagenta">
+        Prodajni
+      </Text>
+    </View>
+  );
+}
 
-          return (
-            <View
-              className="flex-row w-full items-center pb-5"
-              key={rate.quote + index}
-            >
-              <View className="w-[40%] flex-row items-center">
-                <View className="flex justify-center items-center">
-                  <CountryFlag
-                    isoCode={rate.quote.slice(0, 2).toLowerCase()}
-                    size={22}
-                    className="rounded-md"
-                  />
-                </View>
-                <Text className="mx-auto text-lg pr-7 font-inria-bold">
-                  {rate.quote}
-                </Text>
-              </View>
-              <Text className="text-center w-[20%] text-[13px] text-cgray">
-                {formatter.format(buyPrice)}
-              </Text>
-              <Text className="text-center w-[20%] text-[13px] text-cgray">
-                {formatter.format(baseRate)}
-              </Text>
-              <Text className="text-center w-[20%] text-[13px] text-cgray">
-                {formatter.format(sellPrice)}
-              </Text>
-            </View>
-          );
-        })}
+function RateRow({ rate }: { rate: ExchangeRate }) {
+  return (
+    <View className="w-full flex-row items-center pb-5">
+      <View className="w-[40%] flex-row items-center">
+        <CountryFlag countryCode={rate.countryCode} />
+        <Text className="mx-auto pr-7 font-inria-bold text-lg">
+          {rate.quote}
+        </Text>
       </View>
+      <Text className="w-[20%] text-center text-[13px] text-cgray">
+        {formatter.format(rate.buy)}
+      </Text>
+      <Text className="w-[20%] text-center text-[13px] text-cgray">
+        {formatter.format(rate.middle)}
+      </Text>
+      <Text className="w-[20%] text-center text-[13px] text-cgray">
+        {formatter.format(rate.sell)}
+      </Text>
     </View>
   );
 }

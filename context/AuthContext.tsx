@@ -22,6 +22,7 @@ export const API_BASE_URL = apiBaseUrl;
 
 const DEVICE_ID_KEY = "fon_bank_device_id";
 const PIN_SETUP_KEY = 'pin_is_setup';
+const PIN_ENROLLMENT_TOKEN_KEY = 'pin_enrollment_token';
 
 type ApiStatus = "success" | "error";
 type UserStatus = "pending_activation" | "pending_pin" | "active" | "blocked";
@@ -29,6 +30,8 @@ type UserStatus = "pending_activation" | "pending_pin" | "active" | "blocked";
 interface ActivateData {
   user_status: UserStatus;
   message: string;
+  enrollment_token: string;
+  expires_in: number;
 }
 
 interface AuthData {
@@ -125,14 +128,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const [deviceId, isPinSetup] = await Promise.all([
+        const [deviceId, isPinSetup, enrollmentToken] = await Promise.all([
           SecureStore.getItemAsync(DEVICE_ID_KEY),
-          SecureStore.getItemAsync(PIN_SETUP_KEY)
+          SecureStore.getItemAsync(PIN_SETUP_KEY),
+          SecureStore.getItemAsync(PIN_ENROLLMENT_TOKEN_KEY),
         ]);
 
-        if (!deviceId) {
+        if (!deviceId || (!isPinSetup && !enrollmentToken)) {
           setAuthStatus('pending_activation');
-        } else if (deviceId && !isPinSetup) {
+        } else if (!isPinSetup) {
           setAuthStatus('pending_pin');
         } else {
           setAuthStatus('pending_session');
@@ -183,8 +187,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         console.log("request uspesan")
 
-        await SecureStore.setItemAsync(DEVICE_ID_KEY, deviceIdentifier);
         const activateData = response.data;
+        await Promise.all([
+          SecureStore.setItemAsync(DEVICE_ID_KEY, deviceIdentifier),
+          SecureStore.setItemAsync(PIN_ENROLLMENT_TOKEN_KEY, activateData.enrollment_token),
+        ]);
         console.log("postavio")
 
         if (activateData.user_status === 'pending_pin') {
@@ -203,15 +210,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const setupPin = async (pin: string): Promise<AuthResponse> => {
       try {
-        const deviceIdentifier = await SecureStore.getItemAsync(DEVICE_ID_KEY);
+        const enrollmentToken = await SecureStore.getItemAsync(PIN_ENROLLMENT_TOKEN_KEY);
 
-        if (!deviceIdentifier) {
+        if (!enrollmentToken) {
           setAuthStatus('pending_activation')
-          throw new Error("Uređaj nije aktiviran.");
+          throw new Error("Aktivacija je istekla. Unesite novi aktivacioni kod.");
         }
 
         const response = await api.post<AuthResponse>("/set_pin", {
-          device_identifier: deviceIdentifier,
+          enrollment_token: enrollmentToken,
           pin,
         });
 
@@ -219,11 +226,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         await SecureStore.setItemAsync(PIN_SETUP_KEY, 'true');
         setSession(sessionData);
+        try {
+          await SecureStore.deleteItemAsync(PIN_ENROLLMENT_TOKEN_KEY);
+        } catch (error) {
+          console.error("Greška pri brisanju enrollment tokena:", getApiErrorMessage(error));
+        }
         console.log('PIN_SETUP : ', sessionData.status, sessionData.message)
 
         return sessionData;
       } catch (error) {
-        setAuthStatus('pending_pin')
         throw new Error(getApiErrorMessage(error));
       }
     };
@@ -284,6 +295,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await Promise.all([
           SecureStore.deleteItemAsync(DEVICE_ID_KEY),
           SecureStore.deleteItemAsync(PIN_SETUP_KEY),
+          SecureStore.deleteItemAsync(PIN_ENROLLMENT_TOKEN_KEY),
         ]);
       } catch (error) {
         console.error("Greška pri brisanju SecureStore-a:", getApiErrorMessage(error));
