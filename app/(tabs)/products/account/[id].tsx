@@ -119,7 +119,8 @@ export default function AccountDetailsPage() {
                         recipientAccount: account.accountId,
                       },
                     })
-                  }>
+                  }
+                >
                   <MaterialIcons name="qr-code-2" size={25} color="white" />
                   <Text className="text-xl font-inria-bold text-white">
                     Kreiraj QR kod
@@ -181,8 +182,19 @@ export default function AccountDetailsPage() {
 
             <RecentTransactions
               transactions={accountTransactions}
+              accounts={accounts}
               accountIds={selectedAccountIds}
               limit={3}
+              onViewAll={() =>
+                router.navigate({
+                  pathname: "/transactions",
+                  params: {
+                    sourceRequest: Date.now().toString(),
+                    sourceType: "account",
+                    sourceId: account.accountId,
+                  },
+                })
+              }
             />
           </>
         ) : (

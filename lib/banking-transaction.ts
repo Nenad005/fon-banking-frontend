@@ -9,6 +9,7 @@ export type BankingTransactionData = {
   recipientAccount: string;
   recipientName: string;
   senderAccount: string;
+  senderName: string;
   model: number | null;
   referenceNumber: string | null;
   amount: number;
@@ -30,6 +31,7 @@ export class BankingTransaction implements BankingTransactionData {
   readonly recipientAccount: string;
   readonly recipientName: string;
   readonly senderAccount: string;
+  readonly senderName: string;
   readonly model: number | null;
   readonly referenceNumber: string | null;
   readonly amount: number;
@@ -50,6 +52,7 @@ export class BankingTransaction implements BankingTransactionData {
     this.recipientAccount = data.recipientAccount;
     this.recipientName = data.recipientName;
     this.senderAccount = data.senderAccount;
+    this.senderName = data.senderName;
     this.model = data.model;
     this.referenceNumber = data.referenceNumber;
     this.amount = data.amount;
@@ -68,6 +71,14 @@ export class BankingTransaction implements BankingTransactionData {
 
   isOutgoing(ownAccountIds: Set<string>) {
     return ownAccountIds.has(this.senderAccount);
+  }
+
+  getDirection(ownAccountIds: Set<string>) {
+    const isSenderOwned = ownAccountIds.has(this.senderAccount);
+    const isRecipientOwned = ownAccountIds.has(this.recipientAccount);
+
+    if (isSenderOwned && isRecipientOwned) return "internal" as const;
+    return isSenderOwned ? ("outgoing" as const) : ("incoming" as const);
   }
 
   involvesAccount(accountId: string) {

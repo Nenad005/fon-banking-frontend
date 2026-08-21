@@ -30,7 +30,7 @@ const formatAmount = (amount: number) =>
 export default function CardDetailsPage() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const router = useRouter();
-  const { cards, transactions, accountIds, isLoading, errorMessage } =
+  const { accounts, cards, transactions, isLoading, errorMessage } =
     useBankingData();
   const [showSensitiveDetails, setShowSensitiveDetails] = useState(false);
   const [isAuthConfirmationVisible, setIsAuthConfirmationVisible] =
@@ -41,12 +41,16 @@ export default function CardDetailsPage() {
         (transaction) => transaction.cardNumber === card.cardId,
       )
     : [];
+  const selectedCardAccountIds = new Set(card ? [card.accountId] : []);
 
   useFocusEffect(
-    useCallback(() => () => {
-      setShowSensitiveDetails(false);
-      setIsAuthConfirmationVisible(false);
-    }, []),
+    useCallback(
+      () => () => {
+        setShowSensitiveDetails(false);
+        setIsAuthConfirmationVisible(false);
+      },
+      [],
+    ),
   );
 
   if (isLoading && cards.length === 0) {
@@ -131,8 +135,19 @@ export default function CardDetailsPage() {
 
             <RecentTransactions
               transactions={cardTransactions}
-              accountIds={accountIds}
+              accounts={accounts}
+              accountIds={selectedCardAccountIds}
               limit={3}
+              onViewAll={() =>
+                router.navigate({
+                  pathname: "/transactions",
+                  params: {
+                    sourceRequest: Date.now().toString(),
+                    sourceType: "card",
+                    sourceId: card.cardId,
+                  },
+                })
+              }
             />
           </>
         ) : (

@@ -1,8 +1,8 @@
 import { Text } from "@/components/text";
-import { Transaction } from "@/hooks/useBankingData";
+import { Account, Transaction } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 const monthStrings = [
   "Januar",
@@ -46,16 +46,20 @@ export default function RecentTransactions({
   className = "",
   titleClassName = "",
   transactions,
+  accounts,
   accountIds,
   isLoading = false,
   limit = 4,
+  onViewAll,
 }: {
   className?: string;
   titleClassName?: string;
   transactions: Transaction[];
+  accounts: Account[];
   accountIds: Set<string>;
   isLoading?: boolean;
   limit?: number;
+  onViewAll: () => void;
 }) {
   const recentTransactions = transactions.slice(0, limit);
 
@@ -65,23 +69,27 @@ export default function RecentTransactions({
         <Text className={cn("text-cgray text-2xl", titleClassName)}>
           Poslednje transakcije
         </Text>
-        <Text className="text-ctirquise font-inter font-medium text-[14px] pb-1">
-          Prikaži sve
-        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Prikaži sve transakcije"
+          hitSlop={10}
+          onPress={onViewAll}
+        >
+          <Text className="text-ctirquise font-inter font-medium text-[14px] pb-1">
+            Prikaži sve
+          </Text>
+        </Pressable>
       </View>
       <View className="gap-3">
-        {isLoading ? (
-          <Text className="text-cgray font-inria-light">
-            Učitavanje transakcija...
-          </Text>
-        ) : null}
         {!isLoading && recentTransactions.length === 0 ? (
           <Text className="text-cgray font-inria-light">
             Nema transakcija za prikaz.
           </Text>
         ) : null}
         {recentTransactions.map((transaction) => {
-          const isOutgoing = transaction.isOutgoing(accountIds);
+          const direction = transaction.getDirection(accountIds);
+          const isOutgoing = direction === "outgoing";
+          const isInternal = direction === "internal";
           const displayAmount = transaction.getDisplayAmount(accountIds);
           const displayCurrency = transaction.getDisplayCurrency(accountIds);
           const formattedAmount = new Intl.NumberFormat("sr-Latn-RS", {
@@ -91,6 +99,12 @@ export default function RecentTransactions({
           const dateTimeString = formatTransactionDateTime(
             transaction.transactionTime,
           );
+          const senderAccountTitle = accounts.find(
+            (account) => account.accountId === transaction.senderAccount,
+          )?.title;
+          const recipientAccountTitle = accounts.find(
+            (account) => account.accountId === transaction.recipientAccount,
+          )?.title;
 
           return (
             <View key={transaction.id} className="flex-row items-center w-full">
@@ -103,9 +117,11 @@ export default function RecentTransactions({
               </View>
               <View className="justify-between flex-1 pl-2">
                 <Text className="font-inria-bold text-lg pb-2 text-nowrap text-ellipsis">
-                  {isOutgoing
-                    ? transaction.recipientName
-                    : `Priliv sa ${transaction.senderAccount}`}
+                  {isInternal
+                    ? `${senderAccountTitle ?? transaction.senderName} → ${recipientAccountTitle ?? transaction.recipientName}`
+                    : isOutgoing
+                      ? (recipientAccountTitle ?? transaction.recipientName)
+                      : (senderAccountTitle ?? transaction.senderName)}
                 </Text>
                 <Text className="font-inria-light text-cgray">
                   {dateTimeString}
@@ -115,18 +131,24 @@ export default function RecentTransactions({
                 <Text
                   className={cn(
                     "font-inria text-lg pb-2",
-                    isOutgoing ? "text-red-400" : "text-green-400",
+                    isInternal
+                      ? "text-ctirquise"
+                      : isOutgoing
+                        ? "text-red-400"
+                        : "text-green-400",
                   )}
                 >
-                  {isOutgoing ? "-" : ""}
+                  {isInternal ? "" : isOutgoing ? "-" : "+"}
                   {formattedAmount} {displayCurrency}
                 </Text>
                 <Text className="font-inria-light text-cgray">
                   {transaction.cardNumber
                     ? "Plaćanje karticom"
-                    : !isOutgoing
-                      ? "Uplata na račun"
-                      : "Odliv sa računa"}
+                    : isInternal
+                      ? "Interni prenos"
+                      : !isOutgoing
+                        ? "Uplata na račun"
+                        : "Odliv sa računa"}
                 </Text>
               </View>
             </View>

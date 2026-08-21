@@ -115,12 +115,12 @@ export default function ExchangeRates({
         <Text className="text-2xl text-cgray">Kursna lista</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Prikazi sve podrzane valute"
+          accessibilityLabel="Prikaži sve podržane valute"
           hitSlop={10}
           onPress={() => bottomSheetRef.current?.present()}
         >
           <Text className="pb-1 font-inter text-[14px] font-medium text-ctirquise">
-            Prikazi sve
+            Prikaži sve
           </Text>
         </Pressable>
       </View>

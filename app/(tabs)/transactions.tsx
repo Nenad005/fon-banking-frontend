@@ -1,20 +1,27 @@
 import { Text } from "@/components/text";
 import { Transaction, useBankingData } from "@/hooks/useBankingData";
+import { AccountNumber } from "@/lib/account-number";
 import { cn } from "@/lib/utils";
-import {
-  TRANSACTION_CATEGORIES,
-  TransactionCategory,
-} from "@/lib/transaction-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { File, Paths } from "expo-file-system";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { useDeferredValue, useMemo, useRef, useState } from "react";
+import {
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
+  RefreshControl,
   ScrollView,
   TextInput,
   View,
@@ -25,6 +32,13 @@ const PAGE_SIZE = 10;
 
 type TransactionFilter = "all" | "income" | "expense";
 type ExtraFilter = "all" | "7days" | "30days" | "card" | "pending";
+type TransactionSource =
+  { type: "account"; id: string } | { type: "card"; id: string } | null;
+type TransactionSearchParams = {
+  sourceRequest?: string;
+  sourceType?: "all" | "account" | "card";
+  sourceId?: string;
+};
 
 const formatAmount = (amount: number) =>
   new Intl.NumberFormat("en-US", {
@@ -89,16 +103,40 @@ const formatTime = (transactionTime: string) =>
   }).format(new Date(transactionTime));
 
 export default function TransactionsPage() {
+  const sourceParams = useLocalSearchParams<TransactionSearchParams>();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<TransactionFilter>("all");
   const [extraFilter, setExtraFilter] = useState<ExtraFilter>("all");
-  const [categoryFilter, setCategoryFilter] = useState<
-    TransactionCategory | "all"
-  >("all");
+  const [sourceFilter, setSourceFilter] = useState<TransactionSource>(null);
   const [filtersVisible, setFiltersVisible] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const deferredSearchQuery = useDeferredValue(searchQuery);
+
+  useEffect(() => {
+    if (!sourceParams.sourceRequest) return;
+
+    startTransition(() => {
+      setSearchQuery("");
+      setFilter("all");
+      setExtraFilter("all");
+      setSourceFilter(
+        sourceParams.sourceId &&
+          (sourceParams.sourceType === "account" ||
+            sourceParams.sourceType === "card")
+          ? { type: sourceParams.sourceType, id: sourceParams.sourceId }
+          : null,
+      );
+    });
+  }, [
+    sourceParams.sourceId,
+    sourceParams.sourceRequest,
+    sourceParams.sourceType,
+  ]);
+
   const {
     transactions,
+    accounts,
+    cards,
     accountIds,
     isLoading,
     isLoadingMoreTransactions,
@@ -107,6 +145,7 @@ export default function TransactionsPage() {
     errorMessage,
     loadMoreTransactions,
     getAllTransactions,
+    refetch,
   } = useBankingData({
     search: deferredSearchQuery,
     direction: filter === "all" ? undefined : filter,
@@ -118,9 +157,41 @@ export default function TransactionsPage() {
       extraFilter === "card" || extraFilter === "pending"
         ? extraFilter
         : undefined,
-    category: categoryFilter === "all" ? undefined : categoryFilter,
+    accountId: sourceFilter?.type === "account" ? sourceFilter.id : undefined,
+    cardId: sourceFilter?.type === "card" ? sourceFilter.id : undefined,
     perPage: PAGE_SIZE,
   });
+
+  const transactionAccountIds = useMemo(() => {
+    if (sourceFilter?.type === "account") {
+      return new Set([sourceFilter.id]);
+    }
+
+    if (sourceFilter?.type === "card") {
+      const selectedCard = cards.find(
+        (card) => card.cardId === sourceFilter.id,
+      );
+      return selectedCard ? new Set([selectedCard.accountId]) : accountIds;
+    }
+
+    return accountIds;
+  }, [accountIds, cards, sourceFilter]);
+
+  const refresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refetch]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const interval = setInterval(() => void refetch(), 60_000);
+      return () => clearInterval(interval);
+    }, [refetch]),
+  );
 
   const groupedTransactions = useMemo(() => {
     const groups: {
@@ -167,7 +238,9 @@ export default function TransactionsPage() {
           transaction.amount,
           transaction.currency,
           transaction.status,
-        ].map(escapeCsv).join(","),
+        ]
+          .map(escapeCsv)
+          .join(","),
       );
       const csv = [
         "Date,Sender account,Recipient account,Recipient,Purpose,Amount,Currency,Status",
@@ -201,35 +274,41 @@ export default function TransactionsPage() {
         className="border-0 px-5 pb-6"
       /> */}
       <View className="flex-row items-start justify-between pb-11 px-5 pb-6">
-          <View>
-            <Text className="text-3xl leading-9 text-black">
-              Transakcije
-            </Text>
-            <Text className="font-inria-light text-lg text-cgray">
-              Pregled svih priliva i odliva
-            </Text>
-          </View>
-          <Pressable
-            className="mt-1 h-[50px] w-[50px] items-center justify-center rounded-[18px]"
-            onPress={() => {
-              animationRef.current?.play(0);
-              void downloadTransactions();
-            }}
-          >
-            <LottieView
-              ref={animationRef}
-              source={require("@/assets/lottie/Download icon.json")}
-              autoPlay={false}
-              loop={false}
-              colorFilters={[{ keypath: "**", color: "#D057A0" }]}
-              style={{ width: 25, height: 25 }}
-            />
-          </Pressable>
+        <View>
+          <Text className="text-3xl leading-9 text-black">Transakcije</Text>
+          <Text className="font-inria-light text-lg text-cgray">
+            Pregled svih priliva i odliva
+          </Text>
         </View>
+        <Pressable
+          className="mt-1 h-[50px] w-[50px] items-center justify-center rounded-[18px]"
+          onPress={() => {
+            animationRef.current?.play(0);
+            void downloadTransactions();
+          }}
+        >
+          <LottieView
+            ref={animationRef}
+            source={require("@/assets/lottie/Download icon.json")}
+            autoPlay={false}
+            loop={false}
+            colorFilters={[{ keypath: "**", color: "#D057A0" }]}
+            style={{ width: 25, height: 25 }}
+          />
+        </Pressable>
+      </View>
       <ScrollView
         contentContainerClassName="px-3 pb-10"
         keyboardShouldPersistTaps="handled"
         onScroll={handleScroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => void refresh()}
+            tintColor="#004B7C"
+            colors={["#004B7C"]}
+          />
+        }
         scrollEventThrottle={200}
         showsVerticalScrollIndicator={false}
       >
@@ -291,7 +370,7 @@ export default function TransactionsPage() {
               name="options-outline"
               size={27}
               color={
-                extraFilter === "all" && categoryFilter === "all"
+                extraFilter === "all" && sourceFilter === null
                   ? "#505050"
                   : "#d94c9f"
               }
@@ -303,11 +382,11 @@ export default function TransactionsPage() {
           <View className="mb-5 rounded-[18px] border border-[#e2e2e2] bg-[#fafafa] p-3">
             <View className="mb-2 flex-row items-center justify-between">
               <Text className="font-inria-bold text-base">Dodatni filteri</Text>
-              {extraFilter !== "all" || categoryFilter !== "all" ? (
+              {extraFilter !== "all" || sourceFilter !== null ? (
                 <Pressable
                   onPress={() => {
                     setExtraFilter("all");
-                    setCategoryFilter("all");
+                    setSourceFilter(null);
                   }}
                 >
                   <Text className="text-sm text-[#d94c9f]">Poništi</Text>
@@ -348,16 +427,16 @@ export default function TransactionsPage() {
               ))}
             </ScrollView>
             <Text className="mb-2 mt-4 font-inria-bold text-sm text-cgray">
-              Kategorija
+              Račun ili kartica
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <Pressable
                 onPress={() => {
-                  setCategoryFilter("all");
+                  setSourceFilter(null);
                 }}
                 className={cn(
                   "mr-2 flex-row items-center gap-1.5 rounded-full border px-3 py-1.5",
-                  categoryFilter === "all"
+                  sourceFilter === null
                     ? "border-[#60c3ad] bg-[#60c3ad]"
                     : "border-[#dedede] bg-white",
                 )}
@@ -365,25 +444,30 @@ export default function TransactionsPage() {
                 <Ionicons
                   name="apps-outline"
                   size={16}
-                  color={categoryFilter === "all" ? "#ffffff" : "#505050"}
+                  color={sourceFilter === null ? "#ffffff" : "#505050"}
                 />
                 <Text
                   className={cn(
                     "text-sm",
-                    categoryFilter === "all" ? "text-white" : "text-cgray",
+                    sourceFilter === null ? "text-white" : "text-cgray",
                   )}
                 >
                   Sve
                 </Text>
               </Pressable>
-              {TRANSACTION_CATEGORIES.map((category) => {
-                const isSelected = categoryFilter === category.value;
+              {accounts.map((account) => {
+                const isSelected =
+                  sourceFilter?.type === "account" &&
+                  sourceFilter.id === account.accountId;
 
                 return (
                   <Pressable
-                    key={category.value}
+                    key={`account-${account.accountId}`}
                     onPress={() => {
-                      setCategoryFilter(category.value);
+                      setSourceFilter({
+                        type: "account",
+                        id: account.accountId,
+                      });
                     }}
                     className={cn(
                       "mr-2 flex-row items-center gap-1.5 rounded-full border px-3 py-1.5",
@@ -393,7 +477,7 @@ export default function TransactionsPage() {
                     )}
                   >
                     <Ionicons
-                      name={category.icon}
+                      name="wallet-outline"
                       size={16}
                       color={isSelected ? "#ffffff" : "#505050"}
                     />
@@ -403,7 +487,42 @@ export default function TransactionsPage() {
                         isSelected ? "text-white" : "text-cgray",
                       )}
                     >
-                      {category.label}
+                      {account.title} ·{" "}
+                      {new AccountNumber(account.accountId).format()}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+              {cards.map((card) => {
+                const isSelected =
+                  sourceFilter?.type === "card" &&
+                  sourceFilter.id === card.cardId;
+
+                return (
+                  <Pressable
+                    key={`card-${card.cardId}`}
+                    onPress={() => {
+                      setSourceFilter({ type: "card", id: card.cardId });
+                    }}
+                    className={cn(
+                      "mr-2 flex-row items-center gap-1.5 rounded-full border px-3 py-1.5",
+                      isSelected
+                        ? "border-[#60c3ad] bg-[#60c3ad]"
+                        : "border-[#dedede] bg-white",
+                    )}
+                  >
+                    <Ionicons
+                      name="card-outline"
+                      size={16}
+                      color={isSelected ? "#ffffff" : "#505050"}
+                    />
+                    <Text
+                      className={cn(
+                        "text-sm",
+                        isSelected ? "text-white" : "text-cgray",
+                      )}
+                    >
+                      {card.cardType} ···· {card.cardId.slice(-4)}
                     </Text>
                   </Pressable>
                 );
@@ -447,13 +566,29 @@ export default function TransactionsPage() {
 
             <View className="gap-1">
               {group.transactions.map((transaction) => {
-                const isExpense = transaction.isOutgoing(accountIds);
-                const amount = transaction.getDisplayAmount(accountIds);
-                const currency = transaction.getDisplayCurrency(accountIds);
-                const title = isExpense
-                  ? transaction.recipientName
-                  : transaction.recipientName ||
-                    `Priliv sa ${transaction.senderAccount}`;
+                const direction = transaction.getDirection(
+                  transactionAccountIds,
+                );
+                const isExpense = direction === "outgoing";
+                const isInternal = direction === "internal";
+                const amount = transaction.getDisplayAmount(
+                  transactionAccountIds,
+                );
+                const currency = transaction.getDisplayCurrency(
+                  transactionAccountIds,
+                );
+                const senderAccountTitle = accounts.find(
+                  (account) => account.accountId === transaction.senderAccount,
+                )?.title;
+                const recipientAccountTitle = accounts.find(
+                  (account) =>
+                    account.accountId === transaction.recipientAccount,
+                )?.title;
+                const title = isInternal
+                  ? `${senderAccountTitle ?? transaction.senderName} → ${recipientAccountTitle ?? transaction.recipientName}`
+                  : isExpense
+                    ? (recipientAccountTitle ?? transaction.recipientName)
+                    : (senderAccountTitle ?? transaction.senderName);
 
                 return (
                   <View
@@ -462,7 +597,7 @@ export default function TransactionsPage() {
                   >
                     <View className="h-[50px] w-[50px] items-center justify-center rounded-full bg-[#f3f3f3]">
                       <Ionicons
-                        name={transaction.getIcon(accountIds)}
+                        name={transaction.getIcon(transactionAccountIds)}
                         size={27}
                         color="#005a91"
                       />
@@ -486,11 +621,15 @@ export default function TransactionsPage() {
                       <Text
                         className={cn(
                           "text-base",
-                          isExpense ? "text-[#ff2033]" : "text-[#12b964]",
+                          isInternal
+                            ? "text-ctirquise"
+                            : isExpense
+                              ? "text-[#ff2033]"
+                              : "text-[#12b964]",
                         )}
                         numberOfLines={1}
                       >
-                        {isExpense ? "-" : "+"}
+                        {isInternal ? "" : isExpense ? "-" : "+"}
                         {formatAmount(amount)} {currency}
                       </Text>
                       <Text
@@ -499,9 +638,11 @@ export default function TransactionsPage() {
                       >
                         {transaction.cardNumber
                           ? "Plaćanje karticom"
-                          : isExpense
-                            ? "Plaćanje sa računa"
-                            : "Uplata na račun"}
+                          : isInternal
+                            ? "Interni prenos"
+                            : isExpense
+                              ? "Plaćanje sa računa"
+                              : "Uplata na račun"}
                       </Text>
                     </View>
                   </View>

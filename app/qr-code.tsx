@@ -272,7 +272,7 @@ function QrInput({
 }) {
   return (
     <View className="mb-4">
-      <Text className="pb-1 text-base text-[#737373]">{label}</Text>
+      <Text className="pb-1 text-lg text-[#737373]">{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}

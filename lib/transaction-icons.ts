@@ -74,6 +74,13 @@ export const getTransactionIconName = (
   transaction: TransactionLike,
   ownAccountIds: Set<string>,
 ): IoniconName => {
+  if (
+    ownAccountIds.has(transaction.senderAccount) &&
+    ownAccountIds.has(transaction.recipientAccount)
+  ) {
+    return "swap-horizontal-outline";
+  }
+
   const category = transaction.paymentCode
     ? PAYMENT_CODE_CATEGORY_MAP[transaction.paymentCode]
     : undefined;
@@ -84,7 +91,8 @@ export const getTransactionIconName = (
   if (paymentCodeIcon) return paymentCodeIcon;
   if (transaction.cardNumber) return "card-outline";
 
-  const purpose = transaction.paymentPurpose?.toLocaleLowerCase("sr-Latn-RS") ?? "";
+  const purpose =
+    transaction.paymentPurpose?.toLocaleLowerCase("sr-Latn-RS") ?? "";
   if (purpose.includes("pozajmica")) return "cash-outline";
   if (purpose.includes("refund")) return "return-down-back-outline";
   if (purpose.includes("uslug")) return "briefcase-outline";
@@ -99,6 +107,6 @@ export const getTransactionCategory = (
   _ownAccountIds: Set<string>,
 ): TransactionCategory => {
   return transaction.paymentCode
-    ? PAYMENT_CODE_CATEGORY_MAP[transaction.paymentCode] ?? "other"
+    ? (PAYMENT_CODE_CATEGORY_MAP[transaction.paymentCode] ?? "other")
     : "other";
 };

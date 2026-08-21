@@ -71,6 +71,8 @@ export type TransactionHistoryOptions = {
   direction?: "income" | "expense";
   period?: "7days" | "30days";
   method?: "card" | "pending";
+  accountId?: string;
+  cardId?: string;
   category?:
     | "groceries"
     | "restaurants"
@@ -115,6 +117,8 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
     direction,
     period,
     method,
+    accountId,
+    cardId,
     category,
     perPage = 20,
   } = options;
@@ -160,132 +164,153 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
     }
   }, [api, isAuthenticated]);
 
-  const loadTransactions = useCallback(async () => {
-    if (!isAuthenticated) return;
+  const loadTransactions = useCallback(
+    async (preserveTransactions = false) => {
+      if (!isAuthenticated) return;
 
-    const requestId = ++transactionRequestId.current;
-    paginationRef.current = { page: 1, lastPage: 1, isLoading: true };
-    setState((current) => ({
-      ...current,
-      transactions: [],
-      isLoadingTransactions: true,
-      isLoadingMoreTransactions: false,
-      transactionPage: 1,
-      transactionLastPage: 1,
-      transactionTotal: 0,
-      errorMessage: null,
-    }));
-
-    try {
-      let page: PaginatedTransactions;
+      const requestId = ++transactionRequestId.current;
+      paginationRef.current = { page: 1, lastPage: 1, isLoading: true };
+      setState((current) => ({
+        ...current,
+        transactions: preserveTransactions ? current.transactions : [],
+        isLoadingTransactions: true,
+        isLoadingMoreTransactions: false,
+        transactionPage: 1,
+        transactionLastPage: 1,
+        transactionTotal: preserveTransactions ? current.transactionTotal : 0,
+        errorMessage: null,
+      }));
 
       try {
-        const response = await api.get<PaginatedTransactionData>("/transactions", {
-          params: {
-            page: 1,
-            per_page: perPage,
-            search: search.trim() || undefined,
-            direction,
-            period,
-            method,
-            category,
-          },
-        });
-        page = hydrateTransactionPage(response.data);
-      } catch (error) {
-        if (!isAxiosError(error) || error.response?.status !== 404) throw error;
+        let page: PaginatedTransactions;
 
-        const accountsResponse = await api.get<Account[]>("/accounts");
-        const accounts = accountsResponse.data;
-        const accountIds = new Set(
-          accounts.map((account) => account.accountId),
-        );
-        const responses = await Promise.all(
-          accounts.map((account) =>
-            api.get<BankingTransactionData[]>(
-              `/accounts/${encodeURIComponent(account.accountId)}/transactions`,
+        try {
+          const response = await api.get<PaginatedTransactionData>(
+            "/transactions",
+            {
+              params: {
+                page: 1,
+                per_page: perPage,
+                search: search.trim() || undefined,
+                direction,
+                period,
+                method,
+                account_id: accountId,
+                card_id: cardId,
+                category,
+              },
+            },
+          );
+          page = hydrateTransactionPage(response.data);
+        } catch (error) {
+          if (!isAxiosError(error) || error.response?.status !== 404)
+            throw error;
+
+          const accountsResponse = await api.get<Account[]>("/accounts");
+          const accounts = accountsResponse.data;
+          const accountIds = new Set(
+            accounts.map((account) => account.accountId),
+          );
+          const responses = await Promise.all(
+            accounts.map((account) =>
+              api.get<BankingTransactionData[]>(
+                `/accounts/${encodeURIComponent(account.accountId)}/transactions`,
+              ),
             ),
-          ),
-        );
-        const transactionsById = new Map<string, BankingTransaction>();
-        responses
-          .flatMap((response) => response.data.map(hydrateTransaction))
-          .forEach((transaction) =>
-            transactionsById.set(transaction.id, transaction),
           );
-
-        const query = search.trim().toLocaleLowerCase();
-        const now = Date.now();
-        const transactions = Array.from(transactionsById.values())
-          .filter((transaction) => {
-            const isExpense = transaction.isOutgoing(accountIds);
-            const age =
-              now - new Date(transaction.transactionTime).getTime();
-            const searchableText = [
-              transaction.recipientName,
-              transaction.senderAccount,
-              transaction.recipientAccount,
-              transaction.paymentPurpose,
-              transaction.paymentCode,
-            ]
-              .filter(Boolean)
-              .join(" ")
-              .toLocaleLowerCase();
-
-            return (
-              (!direction ||
-                (direction === "expense" ? isExpense : !isExpense)) &&
-              (!period ||
-                age <= (period === "7days" ? 7 : 30) * 86400000) &&
-              (!method ||
-                (method === "card"
-                  ? Boolean(transaction.cardNumber)
-                  : transaction.status === "na_cekanju")) &&
-              (!category || transaction.getCategory(accountIds) === category) &&
-              (!query || searchableText.includes(query))
+          const transactionsById = new Map<string, BankingTransaction>();
+          responses
+            .flatMap((response) => response.data.map(hydrateTransaction))
+            .forEach((transaction) =>
+              transactionsById.set(transaction.id, transaction),
             );
-          })
-          .sort(
-            (first, second) =>
-              new Date(second.transactionTime).getTime() -
-                new Date(first.transactionTime).getTime() ||
-              second.id.localeCompare(first.id),
-          );
 
-        page = {
-          data: transactions,
-          current_page: 1,
-          last_page: 1,
-          per_page: transactions.length,
-          total: transactions.length,
+          const query = search.trim().toLocaleLowerCase();
+          const now = Date.now();
+          const transactions = Array.from(transactionsById.values())
+            .filter((transaction) => {
+              const isExpense = transaction.isOutgoing(accountIds);
+              const age = now - new Date(transaction.transactionTime).getTime();
+              const searchableText = [
+                transaction.recipientName,
+                transaction.senderAccount,
+                transaction.recipientAccount,
+                transaction.paymentPurpose,
+                transaction.paymentCode,
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLocaleLowerCase();
+
+              return (
+                (!direction ||
+                  (direction === "expense" ? isExpense : !isExpense)) &&
+                (!period || age <= (period === "7days" ? 7 : 30) * 86400000) &&
+                (!method ||
+                  (method === "card"
+                    ? Boolean(transaction.cardNumber)
+                    : transaction.status === "na_cekanju")) &&
+                (!accountId || transaction.involvesAccount(accountId)) &&
+                (!cardId || transaction.cardNumber === cardId) &&
+                (!category ||
+                  transaction.getCategory(accountIds) === category) &&
+                (!query || searchableText.includes(query))
+              );
+            })
+            .sort(
+              (first, second) =>
+                new Date(second.transactionTime).getTime() -
+                  new Date(first.transactionTime).getTime() ||
+                second.id.localeCompare(first.id),
+            );
+
+          page = {
+            data: transactions,
+            current_page: 1,
+            last_page: 1,
+            per_page: transactions.length,
+            total: transactions.length,
+          };
+        }
+
+        if (requestId !== transactionRequestId.current) return;
+
+        paginationRef.current = {
+          page: page.current_page,
+          lastPage: page.last_page,
+          isLoading: false,
         };
+        setState((current) => ({
+          ...current,
+          transactions: page.data,
+          isLoadingTransactions: false,
+          transactionPage: page.current_page,
+          transactionLastPage: page.last_page,
+          transactionTotal: page.total,
+        }));
+      } catch (error) {
+        if (requestId !== transactionRequestId.current) return;
+        paginationRef.current.isLoading = false;
+        setState((current) => ({
+          ...current,
+          isLoadingTransactions: false,
+          errorMessage: getErrorMessage(error),
+        }));
       }
-
-      if (requestId !== transactionRequestId.current) return;
-
-      paginationRef.current = {
-        page: page.current_page,
-        lastPage: page.last_page,
-        isLoading: false,
-      };
-      setState((current) => ({
-        ...current,
-        transactions: page.data,
-        isLoadingTransactions: false,
-        transactionPage: page.current_page,
-        transactionLastPage: page.last_page,
-        transactionTotal: page.total,
-      }));
-    } catch (error) {
-      if (requestId !== transactionRequestId.current) return;
-      paginationRef.current.isLoading = false;
-      setState((current) => ({
-        ...current,
-        isLoadingTransactions: false,
-        errorMessage: getErrorMessage(error),
-      }));
-    }
-  }, [api, category, direction, isAuthenticated, method, perPage, period, search]);
+    },
+    [
+      accountId,
+      api,
+      cardId,
+      category,
+      direction,
+      isAuthenticated,
+      method,
+      perPage,
+      period,
+      search,
+    ],
+  );
 
   const loadMoreTransactions = useCallback(async () => {
     const pagination = paginationRef.current;
@@ -306,17 +331,22 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
     }));
 
     try {
-      const response = await api.get<PaginatedTransactionData>("/transactions", {
-        params: {
-          page: nextPage,
-          per_page: perPage,
-          search: search.trim() || undefined,
-          direction,
-          period,
-          method,
-          category,
+      const response = await api.get<PaginatedTransactionData>(
+        "/transactions",
+        {
+          params: {
+            page: nextPage,
+            per_page: perPage,
+            search: search.trim() || undefined,
+            direction,
+            period,
+            method,
+            account_id: accountId,
+            card_id: cardId,
+            category,
+          },
         },
-      });
+      );
 
       if (requestId !== transactionRequestId.current) return;
 
@@ -355,7 +385,18 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
         errorMessage: getErrorMessage(error),
       }));
     }
-  }, [api, category, direction, isAuthenticated, method, perPage, period, search]);
+  }, [
+    accountId,
+    api,
+    cardId,
+    category,
+    direction,
+    isAuthenticated,
+    method,
+    perPage,
+    period,
+    search,
+  ]);
 
   const getAllTransactions = useCallback(async () => {
     try {
@@ -364,9 +405,22 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
       let lastPage = 1;
 
       do {
-        const response = await api.get<PaginatedTransactionData>("/transactions", {
-          params: { page: currentPage, per_page: 100 },
-        });
+        const response = await api.get<PaginatedTransactionData>(
+          "/transactions",
+          {
+            params: {
+              page: currentPage,
+              per_page: 100,
+              search: search.trim() || undefined,
+              direction,
+              period,
+              method,
+              account_id: accountId,
+              card_id: cardId,
+              category,
+            },
+          },
+        );
         allTransactions.push(...response.data.data.map(hydrateTransaction));
         lastPage = response.data.last_page;
         currentPage += 1;
@@ -388,7 +442,9 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
 
       responses
         .flatMap((response) => response.data.map(hydrateTransaction))
-        .forEach((transaction) => transactions.set(transaction.id, transaction));
+        .forEach((transaction) =>
+          transactions.set(transaction.id, transaction),
+        );
 
       return Array.from(transactions.values()).sort(
         (first, second) =>
@@ -397,7 +453,11 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
           second.id.localeCompare(first.id),
       );
     }
-  }, [api]);
+  }, [accountId, api, cardId, category, direction, method, period, search]);
+
+  const refetch = useCallback(async () => {
+    await Promise.all([loadAccountsAndCards(), loadTransactions(true)]);
+  }, [loadAccountsAndCards, loadTransactions]);
 
   useEffect(() => {
     void loadAccountsAndCards();
@@ -419,8 +479,6 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
     accountIds,
     loadMoreTransactions,
     getAllTransactions,
-    refetch: async () => {
-      await Promise.all([loadAccountsAndCards(), loadTransactions()]);
-    },
+    refetch,
   };
 };
