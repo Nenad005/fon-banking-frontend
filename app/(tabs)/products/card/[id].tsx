@@ -5,8 +5,8 @@ import CardDetailsItem from "@/components/products/card-details-item";
 import { Text } from "@/components/text";
 import { useBankingData } from "@/hooks/useBankingData";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -29,6 +29,7 @@ const formatAmount = (amount: number) =>
 
 export default function CardDetailsPage() {
   const { id } = useLocalSearchParams<{ id?: string }>();
+  const router = useRouter();
   const { cards, transactions, accountIds, isLoading, errorMessage } =
     useBankingData();
   const [showSensitiveDetails, setShowSensitiveDetails] = useState(false);
@@ -41,10 +42,24 @@ export default function CardDetailsPage() {
       )
     : [];
 
+  useFocusEffect(
+    useCallback(() => () => {
+      setShowSensitiveDetails(false);
+      setIsAuthConfirmationVisible(false);
+    }, []),
+  );
+
   if (isLoading && cards.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator color="#004B7C" />
+      <View className="flex-1 bg-white pt-14">
+        <ContentHeader
+          title="Detalji kartice"
+          subtitle="Učitavanje podataka o kartici"
+          className="border-0 px-5 pb-7"
+        />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color="#004B7C" />
+        </View>
       </View>
     );
   }
@@ -121,7 +136,19 @@ export default function CardDetailsPage() {
             />
           </>
         ) : (
-          <Text className="text-cgray">Nema podataka za izabranu karticu.</Text>
+          <View className="items-start gap-5 rounded-3xl bg-[#f2f7f8] p-5">
+            <Text className="text-lg text-cgray">
+              Nema podataka za izabranu karticu.
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Vrati se na sve proizvode"
+              onPress={() => router.replace("/products")}
+              className="rounded-2xl bg-ctirquise px-5 py-3"
+            >
+              <Text className="font-inria-bold text-white">Svi proizvodi</Text>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
       <AdditionalAuthConfirmation

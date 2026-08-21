@@ -1,6 +1,7 @@
 import QuickPayments, {
   QuickPaymentEntry,
 } from "@/components/home/quick-payments";
+import AdditionalAuthConfirmation from "@/components/auth/additional-auth-confirmation";
 import { Text } from "@/components/text";
 import { useApi } from "@/context/useApi";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -22,6 +23,18 @@ type PaymentFieldProps = {
   onChangeText: (value: string) => void;
   className?: string;
   keyboardType?: "default" | "numeric";
+};
+
+type TransferRequest = {
+  senderAccount: string;
+  recipientAccount: string;
+  recipientName: string;
+  amount: number;
+  currency: string;
+  paymentPurpose?: string;
+  paymentCode?: string;
+  model: number | null;
+  referenceNumber?: string;
 };
 
 function PaymentField({
@@ -85,6 +98,9 @@ export default function PaymentsPage() {
     quickPaymentParams.paymentPurpose ?? "",
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<TransferRequest | null>(
+    null,
+  );
 
   const { accounts, accountIds, transactions, refetch } = useBankingData();
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
@@ -147,8 +163,8 @@ export default function PaymentsPage() {
     if (rsdAccount) setSelectedAccountId(rsdAccount.accountId);
   };
 
-  const handlePayment = async () => {
-    if (isSubmitting) return;
+  const handlePayment = () => {
+    if (isSubmitting || pendingPayment) return;
 
     const parsedAmount = Number(amount.replace(",", "."));
     const parsedModel = model.trim() ? Number(model) : null;
@@ -189,21 +205,26 @@ export default function PaymentsPage() {
       return;
     }
 
+    setPendingPayment({
+      senderAccount: new AccountNumber(selectedAccount.accountId).toString(),
+      recipientAccount: recipientAccountNumber.toString(),
+      recipientName: recipientName.trim(),
+      amount: parsedAmount,
+      currency: selectedAccount.currency,
+      paymentPurpose: purpose.trim() || undefined,
+      paymentCode: paymentCode.trim() || undefined,
+      model: parsedModel,
+      referenceNumber: referenceNumber.trim() || undefined,
+    });
+  };
+
+  const submitPayment = async () => {
+    if (!pendingPayment || isSubmitting) return;
+
     setIsSubmitting(true);
 
     try {
-      const accountId = recipientAccountNumber.toString();
-      await api.post("/transactions/transfer", {
-        senderAccount: new AccountNumber(selectedAccount.accountId).toString(),
-        recipientAccount: accountId,
-        recipientName: recipientName.trim(),
-        amount: parsedAmount,
-        currency: selectedAccount.currency,
-        paymentPurpose: purpose.trim() || undefined,
-        paymentCode: paymentCode.trim() || undefined,
-        model: parsedModel,
-        referenceNumber: referenceNumber.trim() || undefined,
-      });
+      await api.post("/transactions/transfer", pendingPayment);
 
       clearPaymentForm();
       void refetch();
@@ -215,6 +236,7 @@ export default function PaymentsPage() {
       Alert.alert("Plaćanje nije uspelo", message);
     } finally {
       setIsSubmitting(false);
+      setPendingPayment(null);
     }
   };
 
@@ -385,6 +407,18 @@ export default function PaymentsPage() {
           </Pressable>
         </View>
       </KeyboardAwareScrollView>
+      <AdditionalAuthConfirmation
+        visible={pendingPayment !== null}
+        title="Potvrdite plaćanje"
+        description={
+          pendingPayment
+            ? `Potvrdite slanje ${pendingPayment.amount} ${pendingPayment.currency} primaocu ${pendingPayment.recipientName}.`
+            : "Potvrdite plaćanje unosom PIN-a."
+        }
+        confirmLabel="Plati"
+        onCancel={() => setPendingPayment(null)}
+        onConfirmed={submitPayment}
+      />
     </View>
   );
 }

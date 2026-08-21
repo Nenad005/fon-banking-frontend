@@ -57,8 +57,15 @@ export default function AccountDetailsPage() {
 
   if (isLoading && accounts.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator color="#004B7C" />
+      <View className="flex-1 bg-white pt-14">
+        <ContentHeader
+          title="Detalji računa"
+          subtitle="Učitavanje podataka o računu"
+          className="border-0 px-5 pb-7"
+        />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color="#004B7C" />
+        </View>
       </View>
     );
   }
@@ -179,7 +186,19 @@ export default function AccountDetailsPage() {
             />
           </>
         ) : (
-          <Text className="text-cgray">Nema podataka za izabrani račun.</Text>
+          <View className="items-start gap-5 rounded-3xl bg-[#f2f7f8] p-5">
+            <Text className="text-lg text-cgray">
+              Nema podataka za izabrani račun.
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Vrati se na sve proizvode"
+              onPress={() => router.replace("/products")}
+              className="rounded-2xl bg-ctirquise px-5 py-3"
+            >
+              <Text className="font-inria-bold text-white">Svi proizvodi</Text>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
     </View>

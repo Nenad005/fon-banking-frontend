@@ -1,36 +1,38 @@
 import { Stack } from "expo-router";
 
+export const unstable_settings = {
+  initialRouteName: "index",
+};
+
 export default function ProductsLayout() {
   return (
-    <Stack>
-      {/* This screen acts as the "Home" for the products tab. 
-        We give it the same title as the tab and make sure the header shows.
-      */}
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_right",
+        gestureEnabled: true,
+        fullScreenGestureEnabled: true,
+        animationMatchesGesture: true,
+        contentStyle: { backgroundColor: "#FFFFFF" },
+      }}
+    >
       <Stack.Screen
         name="index"
         options={{
           title: "Proizvodi",
-          headerShown: false,
-          // header: (props) => <Header title="Proizvodi" {...props} />,
+          animation: "none",
         }}
       />
-
-      {/* Nested screens automatically get a back button in a Stack.
-        You can define them here to control their specific headers.
-      */}
       <Stack.Screen
         name="account/[id]"
         options={{
           title: "Detalji računa",
-          headerShown: false,
         }}
       />
-
       <Stack.Screen
         name="card/[id]"
         options={{
           title: "Detalji kartice",
-          headerShown: false,
         }}
       />
     </Stack>

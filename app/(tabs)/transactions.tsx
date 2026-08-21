@@ -8,7 +8,7 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import LottieView from "lottie-react-native";
 
 const PAGE_SIZE = 10;
 
@@ -149,6 +150,8 @@ export default function TransactionsPage() {
     }
   };
 
+  const animationRef = useRef<LottieView>(null);
+
   const downloadTransactions = async () => {
     try {
       const allTransactions = await getAllTransactions();
@@ -208,9 +211,19 @@ export default function TransactionsPage() {
           </View>
           <Pressable
             className="mt-1 h-[50px] w-[50px] items-center justify-center rounded-[18px]"
-            onPress={() => void downloadTransactions()}
+            onPress={() => {
+              animationRef.current?.play(0);
+              void downloadTransactions();
+            }}
           >
-            <Ionicons name="download-outline" size={30} color="#D057A0" />
+            <LottieView
+              ref={animationRef}
+              source={require("@/assets/lottie/Download icon.json")}
+              autoPlay={false}
+              loop={false}
+              colorFilters={[{ keypath: "**", color: "#D057A0" }]}
+              style={{ width: 25, height: 25 }}
+            />
           </Pressable>
         </View>
       <ScrollView

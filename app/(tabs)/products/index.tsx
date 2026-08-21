@@ -11,10 +11,10 @@ export default function ProductsPage() {
   const router = useRouter();
 
   return (
-    <View className="flex-1 pt-14">
+    <View className="flex-1 bg-white pt-14">
       <ContentHeader
-        title="Vasi proizvodi"
-        subtitle="Pregled vasih racuna i kartica"
+        title="Vaši proizvodi"
+        subtitle="Pregled vaših računa i kartica"
         className="px-5 border-0 pb-7"
       ></ContentHeader>
       <ScrollView>
@@ -30,7 +30,7 @@ export default function ProductsPage() {
         ) : null}
         {cards.length > 0 ? (
           <>
-            <Text className="text-cgray text-2xl pb-5 px-5">Vase kartice</Text>
+            <Text className="text-cgray text-2xl pb-5 px-5">Vaše kartice</Text>
             <CardsSwiper
               cardsData={cards}
               onCardPress={(card) =>
@@ -43,10 +43,10 @@ export default function ProductsPage() {
           </>
         ) : null}
         <View className="px-5 pb-10">
-          <Text className="text-cgray text-2xl pb-5">Vasi racuni</Text>
+          <Text className="text-cgray text-2xl pb-5">Vaši računi</Text>
           {!isLoading && accounts.length === 0 ? (
             <Text className="text-cgray font-inria-light">
-              Nema racuna za prikaz.
+              Nema računa za prikaz.
             </Text>
           ) : null}
           <View className="gap-5">

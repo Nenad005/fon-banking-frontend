@@ -54,7 +54,7 @@ export default function SettingsPage() {
       )}
       <View className="bg-ccyan justify-between h-80 rounded-[0_0_35px_35px]">
         <View className="justify-between items-center flex-row p-5 pt-14">
-          <Ionicons name="chevron-back" size={32} color="#FFFFFF" onPress={() => {router.back()}}></Ionicons>
+          <View className="h-8 w-8" />
           <Text className="text-white text-2xl">Profil</Text>
           <SimpleLineIcons name="pencil" size={22} color="#FFFFFF" />
         </View>

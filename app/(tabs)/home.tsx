@@ -15,7 +15,7 @@ export default function HomePage() {
     useBankingData();
 
   const openQuickPayment = (payment: QuickPaymentEntry) => {
-    router.push({
+    router.navigate({
       pathname: "/payments",
       params: {
         quickPaymentRequest: Date.now().toString(),

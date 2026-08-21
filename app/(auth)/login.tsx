@@ -41,7 +41,11 @@ export default function LoginPage() {
         <View className="gap-20">
           <Pressable
             onPress={() => {
-              router.back();
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/");
+              }
             }}
           >
             <Entypo name="chevron-left" size={30} className="text-ctirquise" />

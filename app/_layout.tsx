@@ -141,7 +141,6 @@ function RootNavigator() {
   const { authStatus } = useAuth();
   const router = useRouter();
   const segments = useSegments();
-  console.log(segments);
   const currentGroup = segments[0];
   const currentScreen = segments[1];
   const isLandingScreen = !currentGroup;
@@ -152,7 +151,7 @@ function RootNavigator() {
       !isLandingScreen &&
       currentScreen !== "activation"
     ) {
-      router.push("/activation");
+      router.replace("/activation");
       return;
     }
 
@@ -161,7 +160,7 @@ function RootNavigator() {
       !isLandingScreen &&
       currentScreen !== "pin-setup"
     ) {
-      router.push("/pin-setup");
+      router.replace("/pin-setup");
       return;
     }
 
@@ -173,7 +172,7 @@ function RootNavigator() {
       if (currentGroup === "(tabs)") {
         router.replace("/");
       } else {
-        router.push("/login");
+        router.replace("/login");
       }
       return;
     }
