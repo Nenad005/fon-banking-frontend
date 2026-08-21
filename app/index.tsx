@@ -65,12 +65,15 @@ export default function Index() {
         {/* <Text className="text-white">Ovo je naslov</Text> */}
         <View id="top" className="flex gap-3">
           <View className="flex flex-row justify-between">
-            <View className="flex flex-row items-center gap-4">
+            <View className="flex flex-row items-start gap-4">
               <Image
                 source={require("../assets/images/FON-Logo.svg")}
                 style={{ width: 40, height: 40 }}
               ></Image>
-              <Text className="text-white text-5xl font-dangrek">
+              <Text
+                className="text-white text-5xl font-dangrek"
+                style={{ lineHeight: 60 }}
+              >
                 FON <Text className="text-4xl font-darling">banka</Text>
               </Text>
             </View>
@@ -84,7 +87,12 @@ export default function Index() {
           </View>
         </View>
         <View id="bottom" className="flex gap-4">
-          <Link href={primaryAction.href as RelativePathString} push asChild className="bg-white rounded-lg">
+          <Link
+            href={primaryAction.href as RelativePathString}
+            push
+            asChild
+            className="bg-white rounded-lg"
+          >
             <Pressable className="w-full py-3">
               <Text className="text-center text-xl font-inria-bold ">
                 {primaryAction.label}
