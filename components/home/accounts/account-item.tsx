@@ -1,6 +1,7 @@
 import { Account } from "@/hooks/useBankingData";
 import { Text } from "@/components/text";
 import { cn } from "@/lib/utils";
+import { formatAccountNumber } from "@/lib/account-number";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Clipboard from "expo-clipboard";
@@ -46,22 +47,7 @@ export default function AccountItem({
     maximumFractionDigits: 2,
   });
   const formattedBalance = formatter.format(account.balance);
-  let formattedId = "";
-  let dash = false;
-  let didigts = 0;
-  for (let i = 0; i < account.accountId.length; i++) {
-    if (dash) {
-      if (didigts % 4 === 0) {
-        formattedId += " ";
-      }
-      formattedId += account.accountId[i];
-      didigts++;
-    } else {
-      if (account.accountId[i] === "-") {
-        dash = true;
-      } else formattedId += account.accountId[i];
-    }
-  }
+  const formattedId = formatAccountNumber(account.accountId);
 
   const reAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -116,9 +102,12 @@ export default function AccountItem({
             className={(colorClassNames[account.color] ?? colorClassNames.magenta).icon}
           />
         </View>
-        <View className="flex-row justify-between">
+        <View className="flex-row items-start justify-between">
           <Text className="text-white uppercase text-xl">{account.title}</Text>
-          <MaterialIcons name="more-vert" size={24} color="white" />
+          <View className="flex-row items-center gap-1 rounded-full bg-black/15 px-3 py-1">
+            <MaterialIcons name="account-balance" size={15} color="white" />
+            <Text className="font-inria-bold text-white">{account.currency}</Text>
+          </View>
         </View>
         <View>
           <Text className="text-white text-lg">Ukupno raspolozivo stanje</Text>

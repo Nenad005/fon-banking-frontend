@@ -3,8 +3,9 @@ import RecentTransactions from "@/components/home/recent-transactions";
 import AccountProductItem from "@/components/products/account-product-item";
 import { Text } from "@/components/text";
 import { useBankingData } from "@/hooks/useBankingData";
+import { formatIban } from "@/lib/account-number";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Pressable,
@@ -44,6 +45,7 @@ const formatSectionTitle = (title: string) => {
 
 export default function AccountDetailsPage() {
   const { id } = useLocalSearchParams<{ id?: string }>();
+  const router = useRouter();
   const { accounts, transactions, isLoading, errorMessage } = useBankingData();
   const account = accounts.find((entry) => entry.accountId === id);
   const accountTransactions = account
@@ -88,6 +90,60 @@ export default function AccountDetailsPage() {
               {formatSectionTitle(account.title)}
             </Text>
             <AccountProductItem account={account} />
+
+            {account.qrEligible ? (
+              <View className="mt-7 rounded-3xl bg-[#f2f7f8] p-5">
+                <View className="flex-row items-center gap-3 pb-1">
+                  <MaterialIcons name="qr-code-2" size={30} color="#004B7C" />
+                  <Text className="text-2xl font-inria-bold text-ctirquise">
+                    Zahtev za uplatu
+                  </Text>
+                </View>
+                <Text className="pb-5 text-lg text-cgray">
+                  Unesite podatke i generišite NBS IPS QR kod u jednom koraku.
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Otvori formu za NBS IPS QR kod"
+                  className="flex-row items-center justify-center gap-3 rounded-2xl bg-ctirquise py-4"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/qr-code",
+                      params: {
+                        recipientName: account.name,
+                        recipientAccount: account.accountId,
+                      },
+                    })
+                  }>
+                  <MaterialIcons name="qr-code-2" size={25} color="white" />
+                  <Text className="text-xl font-inria-bold text-white">
+                    Kreiraj QR kod
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View className="mt-7 flex-row items-center gap-4 rounded-3xl bg-[#f2f7f8] p-5">
+                <View className="h-12 w-12 items-center justify-center rounded-full bg-ctirquise/10">
+                  <MaterialIcons name="euro" size={27} color="#004B7C" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-xl font-inria-bold text-ctirquise">
+                    Devizni račun
+                  </Text>
+                  <Text className="pt-1 text-base text-cgray">
+                    NBS IPS QR je dostupan samo za dinarske RSD račune.
+                  </Text>
+                  {account.iban ? (
+                    <>
+                      <Text className="pt-3 text-sm text-[#777]">IBAN</Text>
+                      <Text className="font-inconsolata-regular text-base text-ctirquise">
+                        {formatIban(account.iban)}
+                      </Text>
+                    </>
+                  ) : null}
+                </View>
+              </View>
+            )}
 
             <View className="pb-7 pt-7">
               <View className="flex-row items-center justify-between pb-4">

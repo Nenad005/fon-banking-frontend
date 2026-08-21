@@ -1,0 +1,15 @@
+export type Currency =
+  | "EUR"
+  | "USD"
+  | "CHF"
+  | "GBP"
+  | "AUD"
+  | "CAD"
+  | "CNY"
+  | "DKK"
+  | "HUF"
+  | "JPY"
+  | "NOK"
+  | "RUB"
+  | "RSD"
+  | "SEK";

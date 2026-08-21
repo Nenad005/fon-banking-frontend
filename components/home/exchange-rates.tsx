@@ -1,4 +1,4 @@
-import { Currency } from "@/assets/data/homePageData";
+import { Currency } from "@/lib/currency";
 import { Text } from "@/components/text";
 import { useApi } from "@/context/useApi";
 import { cn } from "@/lib/utils";

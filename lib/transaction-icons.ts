@@ -26,9 +26,11 @@ type TransactionLike = {
   senderAccount: string;
   recipientAccount: string;
   cardNumber?: string | null;
+  paymentCode?: string | null;
+  paymentPurpose?: string | null;
 };
 
-const ACCOUNT_SUFFIX_CATEGORY_MAP: Record<
+const PAYMENT_CODE_CATEGORY_MAP: Record<
   string,
   Exclude<TransactionCategory, "other">
 > = {
@@ -62,14 +64,11 @@ const CATEGORY_ICON_MAP = Object.fromEntries(
   TRANSACTION_CATEGORIES.map(({ value, icon }) => [value, icon]),
 ) as Record<TransactionCategory, IoniconName>;
 
-const ACCOUNT_SUFFIX_ICON_MAP: Record<string, IoniconName> = {
-  "0000": "person-outline",
-  "9991": "wallet-outline",
-  "9992": "cash-outline",
-  "9993": "card-outline",
+const PAYMENT_CODE_ICON_MAP: Record<string, IoniconName> = {
+  opening_balance: "wallet-outline",
+  income: "cash-outline",
+  business_funding: "card-outline",
 };
-
-const getAccountSuffix = (accountId: string) => accountId.slice(-4);
 
 export const getCounterpartyAccountId = (
   transaction: TransactionLike,
@@ -86,32 +85,31 @@ export const getTransactionIconName = (
   transaction: TransactionLike,
   ownAccountIds: Set<string>,
 ): IoniconName => {
-  const counterpartyAccountId = getCounterpartyAccountId(
-    transaction,
-    ownAccountIds,
-  );
-  const suffix = getAccountSuffix(counterpartyAccountId);
-  const category = ACCOUNT_SUFFIX_CATEGORY_MAP[suffix];
+  const category = transaction.paymentCode
+    ? PAYMENT_CODE_CATEGORY_MAP[transaction.paymentCode]
+    : undefined;
 
-  return (
-    (category
-      ? CATEGORY_ICON_MAP[category]
-      : ACCOUNT_SUFFIX_ICON_MAP[suffix]) ??
-    (transaction.cardNumber ? "card-outline" : "swap-horizontal-outline")
-  );
+  if (category) return CATEGORY_ICON_MAP[category];
+
+  const paymentCodeIcon = PAYMENT_CODE_ICON_MAP[transaction.paymentCode ?? ""];
+  if (paymentCodeIcon) return paymentCodeIcon;
+  if (transaction.cardNumber) return "card-outline";
+
+  const purpose = transaction.paymentPurpose?.toLocaleLowerCase("sr-Latn-RS") ?? "";
+  if (purpose.includes("pozajmica")) return "cash-outline";
+  if (purpose.includes("refund")) return "return-down-back-outline";
+  if (purpose.includes("uslug")) return "briefcase-outline";
+
+  return ownAccountIds.has(transaction.senderAccount)
+    ? "arrow-up-circle-outline"
+    : "arrow-down-circle-outline";
 };
 
 export const getTransactionCategory = (
   transaction: TransactionLike,
-  ownAccountIds: Set<string>,
+  _ownAccountIds: Set<string>,
 ): TransactionCategory => {
-  const counterpartyAccountId = getCounterpartyAccountId(
-    transaction,
-    ownAccountIds,
-  );
-
-  return (
-    ACCOUNT_SUFFIX_CATEGORY_MAP[getAccountSuffix(counterpartyAccountId)] ??
-    "other"
-  );
+  return transaction.paymentCode
+    ? PAYMENT_CODE_CATEGORY_MAP[transaction.paymentCode] ?? "other"
+    : "other";
 };

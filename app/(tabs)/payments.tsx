@@ -11,6 +11,12 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useBankingData } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
 import { openQrScanner } from "@/lib/qr-scanner-navigation";
+import { PaymentQrData } from "@/lib/nbs-ips-qr";
+import {
+  formatAccountNumber,
+  isValidDomesticAccount,
+  normalizeAccountNumber,
+} from "@/lib/account-number";
 
 type PaymentFieldProps = {
   placeholder: string;
@@ -64,6 +70,19 @@ export default function PaymentsPage() {
   const selectedAccount =
     accounts.find((account) => account.accountId === selectedAccountId) ?? accounts[0];
 
+  const handleScannedPayment = (payment: PaymentQrData) => {
+    setRecipientName(payment.recipientName);
+    setRecipientAccount(payment.recipientAccount);
+    setModel(payment.model);
+    setReferenceNumber(payment.referenceNumber);
+    setAmount(payment.amount);
+    setPaymentCode(payment.paymentCode);
+    setPurpose(payment.purpose);
+
+    const rsdAccount = accounts.find((account) => account.currency === "RSD");
+    if (rsdAccount) setSelectedAccountId(rsdAccount.accountId);
+  };
+
   const handlePayment = async () => {
     if (isSubmitting) return;
 
@@ -80,6 +99,14 @@ export default function PaymentsPage() {
       return;
     }
 
+    if (!isValidDomesticAccount(recipientAccount)) {
+      Alert.alert(
+        "Neispravan račun",
+        "Broj računa mora imati 18 cifara i ispravne kontrolne cifre.",
+      );
+      return;
+    }
+
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       Alert.alert("Neispravan iznos", "Unesite iznos veći od nule.");
       return;
@@ -90,7 +117,10 @@ export default function PaymentsPage() {
       return;
     }
 
-    if (recipientAccount.trim() === selectedAccount.accountId) {
+    if (
+      normalizeAccountNumber(recipientAccount) ===
+      normalizeAccountNumber(selectedAccount.accountId)
+    ) {
       Alert.alert("Neispravan račun", "Ne možete poslati novac na isti račun.");
       return;
     }
@@ -98,9 +128,9 @@ export default function PaymentsPage() {
     setIsSubmitting(true);
 
     try {
-      const accountId = recipientAccount.trim();
+      const accountId = normalizeAccountNumber(recipientAccount);
       await api.post("/transactions/transfer", {
-        senderAccount: selectedAccount.accountId,
+        senderAccount: normalizeAccountNumber(selectedAccount.accountId),
         recipientAccount: accountId,
         recipientName: recipientName.trim(),
         amount: parsedAmount,
@@ -150,7 +180,8 @@ export default function PaymentsPage() {
           </View>
           <Pressable
             className="mt-1 h-[50px] w-[50px] items-center justify-center rounded-[18px] border-[3px] border-ctirquise"
-            onPress={() => openQrScanner(router, setRecipientAccount)}>
+            accessibilityLabel="Skeniraj NBS IPS QR kod"
+            onPress={() => openQrScanner(router, handleScannedPayment)}>
             <MaterialIcons name="qr-code-scanner" size={30} color="#004B7C" />
           </Pressable>
         </View>
@@ -172,7 +203,9 @@ export default function PaymentsPage() {
             <View>
               <Text className="text-xl text-[#929292]">RAČUN</Text>
               <Text className="text-xl text-cgray">
-                {selectedAccount?.accountId ?? "IZABERITE RAUN"}
+                {selectedAccount
+                  ? formatAccountNumber(selectedAccount.accountId)
+                  : "IZABERITE RAČUN"}
               </Text>
               {selectedAccount && (
                 <Text className="pt-1 text-lg text-cgray">
@@ -216,10 +249,10 @@ export default function PaymentsPage() {
             onChangeText={setRecipientName}
           />
           <PaymentField
-            placeholder="BROJ RAČUNA"
-            value={recipientAccount}
-            onChangeText={setRecipientAccount}
-            keyboardType="default"
+              placeholder="BROJ RAČUNA"
+              value={recipientAccount}
+              onChangeText={(value) => setRecipientAccount(formatAccountNumber(value))}
+              keyboardType="numeric"
           />
           <PaymentField 
             placeholder="MODEL" 

@@ -1,12 +1,10 @@
 import { Text } from "@/components/text";
 import { Card } from "@/hooks/useBankingData";
+import { formatAccountNumber } from "@/lib/account-number";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, View } from "react-native";
-
-const formatAccountId = (accountId: string) =>
-  accountId.replace("-", "").replace(/(.{4})(?=.)/g, "$1 ");
 
 const formatCardNumber = (cardId: string, showSensitiveDetails: boolean) => {
   const visibleCardId = showSensitiveDetails
@@ -59,7 +57,12 @@ export default function CardDetailsItem({
               FON <Text className="font-darling text-4xl">kartica</Text>
             </Text>
           </View>
-          <Text className="text-white">{formatAccountId(card.accountId)}</Text>
+          <View className="flex-row items-center gap-2">
+            <Text className="text-white">{formatAccountNumber(card.accountId)}</Text>
+            <Text className="rounded-full bg-white/15 px-2 py-0.5 font-inria-bold text-white">
+              {card.currency}
+            </Text>
+          </View>
         </View>
 
         <View className="flex-row items-start gap-2">

@@ -24,7 +24,7 @@ const DIM_COLOR = "rgba(0, 0, 0, 0.6)";
 
 type QrScannerProps = {
   onClose: () => void;
-  onScanned: (scannedValue: string) => void;
+  onScanned: (scannedValue: string) => Promise<boolean>;
 };
 
 export default function QrScanner({ onClose, onScanned }: QrScannerProps) {
@@ -32,23 +32,30 @@ export default function QrScanner({ onClose, onScanned }: QrScannerProps) {
   const { width, height } = useWindowDimensions();
   const [permission, requestPermission] = useCameraPermissions();
   const [isScanningImage, setIsScanningImage] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const didScan = useRef(false);
   const frameLeft = (width - FRAME_SIZE) / 2;
   const frameTop = (height - FRAME_SIZE) / 2;
 
   const completeScan = useCallback(
-    (scannedValue: string) => {
+    async (scannedValue: string) => {
       if (didScan.current) return;
 
       didScan.current = true;
-      onScanned(scannedValue);
+      setIsValidating(true);
+      const accepted = await onScanned(scannedValue);
+
+      if (!accepted) {
+        didScan.current = false;
+        setIsValidating(false);
+      }
     },
     [onScanned],
   );
 
   const handleBarcodeScanned = useCallback(
     ({ data }: BarcodeScanningResult) => {
-      completeScan(data);
+      void completeScan(data);
     },
     [completeScan],
   );
@@ -76,7 +83,7 @@ export default function QrScanner({ onClose, onScanned }: QrScannerProps) {
         return;
       }
 
-      completeScan(scan.data);
+      await completeScan(scan.data);
     } catch {
       Alert.alert(
         "Skeniranje nije uspelo",
@@ -197,15 +204,19 @@ export default function QrScanner({ onClose, onScanned }: QrScannerProps) {
         <Pressable
           accessibilityLabel="Izaberi QR kod iz galerije"
           className="flex-row items-center justify-center gap-3 rounded-2xl bg-white py-4"
-          disabled={isScanningImage}
+          disabled={isScanningImage || isValidating}
           onPress={handleImagePick}>
-          {isScanningImage ? (
+          {isScanningImage || isValidating ? (
             <ActivityIndicator color="#004B7C" />
           ) : (
             <Ionicons name="images-outline" size={24} color="#004B7C" />
           )}
           <Text className="text-lg font-inria-bold text-ctirquise">
-            {isScanningImage ? "Skeniranje fotografije..." : "Izaberi iz galerije"}
+            {isValidating
+              ? "Provera QR koda..."
+              : isScanningImage
+                ? "Skeniranje fotografije..."
+                : "Izaberi iz galerije"}
           </Text>
         </Pressable>
       </View>

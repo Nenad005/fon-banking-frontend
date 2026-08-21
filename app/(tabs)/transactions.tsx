@@ -15,7 +15,6 @@ import {
   Alert,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Platform,
   Pressable,
   ScrollView,
   TextInput,
@@ -107,9 +106,13 @@ const formatTime = (transactionTime: string) =>
 function MonthlyOverview({
   transactions,
   accountIds,
+  currency,
+  onCurrencyChange,
 }: {
   transactions: Transaction[];
   accountIds: Set<string>;
+  currency: "RSD" | "EUR";
+  onCurrencyChange: (currency: "RSD" | "EUR") => void;
 }) {
   const months = useMemo(() => {
     const now = new Date();
@@ -131,6 +134,11 @@ function MonthlyOverview({
       if (!month) return;
 
       const isExpense = accountIds.has(transaction.senderAccount);
+      const transactionCurrency = isExpense
+        ? (transaction.senderCurrency ?? transaction.currency)
+        : (transaction.recipientCurrency ?? transaction.currency);
+      if (transactionCurrency !== currency) return;
+
       const amount = isExpense
         ? (transaction.senderAmount ?? transaction.amount)
         : (transaction.recipientAmount ?? transaction.amount);
@@ -143,7 +151,7 @@ function MonthlyOverview({
     });
 
     return entries;
-  }, [accountIds, transactions]);
+  }, [accountIds, currency, transactions]);
 
   const highestAmount = Math.max(
     ...months.flatMap((month) => [month.income, month.expense]),
@@ -159,7 +167,25 @@ function MonthlyOverview({
             Prilivi i odlivi u poslednjih 6 meseci
           </Text>
         </View>
-        {/* <Ionicons name="stats-chart-outline" size={24} color="#004B7C" /> */}
+        <View className="flex-row rounded-full bg-white p-1">
+          {(["RSD", "EUR"] as const).map((option) => (
+            <Pressable
+              key={option}
+              className={cn(
+                "rounded-full px-3 py-1",
+                option === currency && "bg-ctirquise",
+              )}
+              onPress={() => onCurrencyChange(option)}>
+              <Text
+                className={cn(
+                  "font-inria-bold text-cgray",
+                  option === currency && "text-white",
+                )}>
+                {option}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
       <View className="mt-5 flex-row items-end justify-between">
@@ -212,6 +238,7 @@ export default function TransactionsPage() {
     TransactionCategory | "all"
   >("all");
   const [filtersVisible, setFiltersVisible] = useState(false);
+  const [overviewCurrency, setOverviewCurrency] = useState<"RSD" | "EUR">("RSD");
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const {
     transactions,
@@ -337,7 +364,12 @@ export default function TransactionsPage() {
         scrollEventThrottle={200}
         showsVerticalScrollIndicator={false}
       >
-        <MonthlyOverview transactions={transactions} accountIds={accountIds} />
+        <MonthlyOverview
+          transactions={transactions}
+          accountIds={accountIds}
+          currency={overviewCurrency}
+          onCurrencyChange={setOverviewCurrency}
+        />
 
         <View className="h-11 flex-row items-center rounded-[15px] border-2 border-[#d94c9f] px-3">
           <TextInput

@@ -1,6 +1,7 @@
 import { Card } from "@/hooks/useBankingData";
 import { Text } from "@/components/text";
 import { cn } from "@/lib/utils";
+import { formatAccountNumber } from "@/lib/account-number";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Dimensions, Pressable, View } from "react-native";
@@ -50,22 +51,7 @@ export default function CardItem({
     };
   });
 
-  let formattedId = "";
-  let dash = false;
-  let didigts = 0;
-  for (let i = 0; i < card.accountId.length; i++) {
-    if (dash) {
-      if (didigts % 4 === 0) {
-        formattedId += " ";
-      }
-      formattedId += card.accountId[i];
-      didigts++;
-    } else {
-      if (card.accountId[i] === "-") {
-        dash = true;
-      } else formattedId += card.accountId[i];
-    }
-  }
+  const formattedId = formatAccountNumber(card.accountId);
 
   let hiddenCardDigits = ["", "", "", ""];
   let j = 0;
@@ -118,7 +104,12 @@ export default function CardItem({
                 FON <Text className="text-4xl font-darling">kartica</Text>
               </Text>
             </View>
-            <Text className="text-white">{formattedId}</Text>
+            <View className="flex-row items-center gap-2">
+              <Text className="text-white">{formattedId}</Text>
+              <Text className="rounded-full bg-white/15 px-2 py-0.5 font-inria-bold text-white">
+                {card.currency}
+              </Text>
+            </View>
           </View>
           <Image
             source={require("@/assets/images/card-nfc.svg")}

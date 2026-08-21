@@ -102,7 +102,7 @@ function GlobalWipeButton() {
   const { clearSecureStore } = useAuth();
   const segments = useSegments();
 
-  if (String(segments[0]) === "qr-scanner") {
+  if (["qr-scanner", "qr-code"].includes(String(segments[0]))) {
     return null;
   }
 
@@ -213,6 +213,15 @@ function RootNavigator() {
       <Stack.Screen
         name="qr-scanner"
         options={{ headerShown: false, animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="qr-code"
+        options={{
+          headerShown: false,
+          presentation: "transparentModal",
+          animation: "fade",
+          contentStyle: { backgroundColor: "transparent" },
+        }}
       />
     </Stack>
   );

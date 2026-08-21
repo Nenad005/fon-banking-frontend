@@ -1,5 +1,5 @@
 import { useApi } from "@/context/useApi";
-import { Currency } from "@/assets/data/homePageData";
+import { Currency } from "@/lib/currency";
 import { useAuth } from "@/context/AuthContext";
 import { isAxiosError } from "axios";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -8,9 +8,11 @@ export type Account = {
   title: string;
   name: string;
   accountId: string;
+  iban: string | null;
   balance: number;
   color: "magenta" | "tirquise" | string;
   currency: Currency;
+  qrEligible: boolean;
 };
 
 export type Card = {
@@ -103,7 +105,7 @@ const getErrorMessage = (error: unknown) => {
   return "Podaci nisu mogli da se ucitaju.";
 };
 
-const CATEGORY_SUFFIXES: Record<
+const CATEGORY_PAYMENT_CODES: Record<
   NonNullable<TransactionHistoryOptions["category"]>,
   string | null
 > = {
@@ -232,16 +234,17 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
 
         const query = search.trim().toLocaleLowerCase();
         const now = Date.now();
-        const categorySuffix = category ? CATEGORY_SUFFIXES[category] : null;
-        const categorySuffixes = Object.values(CATEGORY_SUFFIXES).filter(
-          (suffix): suffix is string => suffix !== null,
+        const categoryPaymentCode = category
+          ? CATEGORY_PAYMENT_CODES[category]
+          : null;
+        const categoryPaymentCodes = Object.values(
+          CATEGORY_PAYMENT_CODES,
+        ).filter(
+          (paymentCode): paymentCode is string => paymentCode !== null,
         );
         const transactions = Array.from(transactionsById.values())
           .filter((transaction) => {
             const isExpense = accountIds.has(transaction.senderAccount);
-            const counterpartyAccount = isExpense
-              ? transaction.recipientAccount
-              : transaction.senderAccount;
             const age =
               now - new Date(transaction.transactionTime).getTime();
             const searchableText = [
@@ -266,10 +269,8 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
                   : transaction.status === "na_cekanju")) &&
               (!category ||
                 (category === "other"
-                  ? !categorySuffixes.some((suffix) =>
-                      counterpartyAccount.endsWith(suffix),
-                    )
-                  : counterpartyAccount.endsWith(categorySuffix!))) &&
+                  ? !categoryPaymentCodes.includes(transaction.paymentCode ?? "")
+                  : transaction.paymentCode === categoryPaymentCode)) &&
               (!query || searchableText.includes(query))
             );
           })
