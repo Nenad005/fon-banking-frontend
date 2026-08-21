@@ -29,6 +29,7 @@ module.exports = {
         ccyan: "#60C3AD",
         cyellow: "#FFCD67",
         cgray: "#505050",
+        cred: "#E32929",
       },
     },
   },

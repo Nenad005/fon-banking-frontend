@@ -1,10 +1,12 @@
-import QuickPayments from "@/components/home/quick-payments";
+import QuickPayments, {
+  QuickPaymentEntry,
+} from "@/components/home/quick-payments";
 import { Text } from "@/components/text";
 import { useApi } from "@/context/useApi";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { isAxiosError } from "axios";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -55,20 +57,86 @@ function PaymentField({
 export default function PaymentsPage() {
   const router = useRouter();
   const api = useApi();
-  const [recipientName, setRecipientName] = useState("");
-  const [recipientAccount, setRecipientAccount] = useState("");
-  const [model, setModel] = useState("");
-  const [referenceNumber, setReferenceNumber] = useState("");
-  const [amount, setAmount] = useState("");
-  const [paymentCode, setPaymentCode] = useState("");
-  const [purpose, setPurpose] = useState("");
+  const quickPaymentParams = useLocalSearchParams<{
+    quickPaymentRequest?: string;
+    recipientName?: string;
+    recipientAccount?: string;
+    senderAccount?: string;
+    amount?: string;
+    model?: string;
+    referenceNumber?: string;
+    paymentPurpose?: string;
+    paymentCode?: string;
+  }>();
+  const [appliedQuickPaymentRequest, setAppliedQuickPaymentRequest] = useState(
+    quickPaymentParams.quickPaymentRequest,
+  );
+  const [recipientName, setRecipientName] = useState(
+    quickPaymentParams.recipientName ?? "",
+  );
+  const [recipientAccount, setRecipientAccount] = useState(
+    formatAccountNumber(quickPaymentParams.recipientAccount ?? ""),
+  );
+  const [model, setModel] = useState(quickPaymentParams.model ?? "");
+  const [referenceNumber, setReferenceNumber] = useState(
+    quickPaymentParams.referenceNumber ?? "",
+  );
+  const [amount, setAmount] = useState(quickPaymentParams.amount ?? "");
+  const [paymentCode, setPaymentCode] = useState(
+    quickPaymentParams.paymentCode ?? "",
+  );
+  const [purpose, setPurpose] = useState(
+    quickPaymentParams.paymentPurpose ?? "",
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { accounts, accountIds, transactions, refetch } = useBankingData();
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>((accounts && accounts.length > 0 ) ? accounts[0].accountId : null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
+    quickPaymentParams.senderAccount ??
+      ((accounts && accounts.length > 0) ? accounts[0].accountId : null),
+  );
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const selectedAccount =
     accounts.find((account) => account.accountId === selectedAccountId) ?? accounts[0];
+
+  const fillQuickPayment = (payment: QuickPaymentEntry) => {
+    setRecipientName(payment.name);
+    setRecipientAccount(formatAccountNumber(payment.accountId));
+    setSelectedAccountId(payment.senderAccountId);
+    setAmount(payment.amount.toString());
+    setModel(payment.model?.toString() ?? "");
+    setReferenceNumber(payment.referenceNumber ?? "");
+    setPurpose(payment.paymentPurpose ?? "");
+    setPaymentCode(payment.paymentCode ?? "");
+  };
+
+  const clearPaymentForm = () => {
+    setRecipientName("");
+    setRecipientAccount("");
+    setModel("");
+    setReferenceNumber("");
+    setAmount("");
+    setPaymentCode("");
+    setPurpose("");
+    setIsAccountMenuOpen(false);
+  };
+
+  if (
+    quickPaymentParams.quickPaymentRequest &&
+    quickPaymentParams.quickPaymentRequest !== appliedQuickPaymentRequest
+  ) {
+    setAppliedQuickPaymentRequest(quickPaymentParams.quickPaymentRequest);
+    setRecipientName(quickPaymentParams.recipientName ?? "");
+    setRecipientAccount(
+      formatAccountNumber(quickPaymentParams.recipientAccount ?? ""),
+    );
+    setSelectedAccountId(quickPaymentParams.senderAccount ?? null);
+    setAmount(quickPaymentParams.amount ?? "");
+    setModel(quickPaymentParams.model ?? "");
+    setReferenceNumber(quickPaymentParams.referenceNumber ?? "");
+    setPurpose(quickPaymentParams.paymentPurpose ?? "");
+    setPaymentCode(quickPaymentParams.paymentCode ?? "");
+  }
 
   const handleScannedPayment = (payment: PaymentQrData) => {
     setRecipientName(payment.recipientName);
@@ -141,13 +209,7 @@ export default function PaymentsPage() {
         referenceNumber: referenceNumber.trim() || undefined,
       });
 
-      setRecipientName("");
-      setRecipientAccount("");
-      setModel("");
-      setReferenceNumber("");
-      setAmount("");
-      setPaymentCode("");
-      setPurpose("");
+      clearPaymentForm();
       void refetch();
       Alert.alert("Plaćanje uspešno", "Novac je uspešno poslat.");
     } catch (error) {
@@ -187,10 +249,11 @@ export default function PaymentsPage() {
         </View>
 
         <QuickPayments
-                    className="pb-10"
-                    transactions={transactions}
-                    accountIds={accountIds}
-                  />
+          className="pb-10"
+          transactions={transactions}
+          accountIds={accountIds}
+          onSelect={fillQuickPayment}
+        />
 
         <Text className="pb-10 text-2xl font-inria-bold text-black">
           SA RAČUNA
@@ -293,23 +356,36 @@ export default function PaymentsPage() {
           />
         </View>
 
-        <Pressable
-          className={cn(
-            "flex-row items-center justify-center gap-3 rounded-2xl bg-ccyan py-4",
-            isSubmitting && "opacity-60",
-          )}
-          disabled={isSubmitting}
-          onPress={handlePayment}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <>
-              <Text className="text-2xl font-inria-bold text-white">Plati</Text>
-              <Ionicons name="arrow-forward" size={25} color="white" />
-            </>
-          )}
-        </Pressable>
+        <View className="flex-row items-center gap-3">
+          <Pressable
+            className={cn(
+              "h-16 flex-row items-center justify-center gap-2 rounded-2xl border-2 border-cred px-4",
+              isSubmitting && "opacity-60",
+            )}
+            accessibilityRole="button"
+            accessibilityLabel="Obriši podatke za plaćanje"
+            disabled={isSubmitting}
+            onPress={clearPaymentForm}>
+            <Ionicons name="trash-outline" size={23} color="#E32929" />
+            <Text className="font-inria-bold text-lg text-cred">Obriši</Text>
+          </Pressable>
+          <Pressable
+            className={cn(
+              "h-16 flex-1 flex-row items-center justify-center gap-3 rounded-2xl bg-ccyan",
+              isSubmitting && "opacity-60",
+            )}
+            disabled={isSubmitting}
+            onPress={handlePayment}>
+            {isSubmitting ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <Text className="text-2xl font-inria-bold text-white">Plati</Text>
+                <Ionicons name="arrow-forward" size={25} color="white" />
+              </>
+            )}
+          </Pressable>
+        </View>
       </KeyboardAwareScrollView>
     </View>
   );

@@ -17,10 +17,16 @@ import Animated, {
   useSharedValue,
 } from "react-native-reanimated";
 
-type QuickPaymentEntry = {
+export type QuickPaymentEntry = {
   accountId: string;
+  senderAccountId: string;
   name: string;
   icon: ReturnType<typeof getTransactionIconName>;
+  amount: number;
+  model: number | null;
+  referenceNumber: string | null;
+  paymentPurpose: string | null;
+  paymentCode: string | null;
 };
 
 type QuickPaymentItem = QuickPaymentEntry | { isAddButton: true };
@@ -60,10 +66,12 @@ export default function QuickPayments({
   className = "",
   transactions,
   accountIds,
+  onSelect,
 }: {
   className?: string;
   transactions: Transaction[];
   accountIds: Set<string>;
+  onSelect: (payment: QuickPaymentEntry) => void;
 }) {
   const { width } = useWindowDimensions();
   const [activePage, setActivePage] = useState(0);
@@ -87,16 +95,24 @@ export default function QuickPayments({
         accountIds,
       );
 
-      if (entries.has(counterpartyAccountId)) return;
+      const recipientKey = transaction.recipientName.trim().toLocaleLowerCase();
 
-      entries.set(counterpartyAccountId, {
+      if (entries.has(recipientKey)) return;
+
+      entries.set(recipientKey, {
         accountId: counterpartyAccountId,
+        senderAccountId: transaction.senderAccount,
         name: transaction.recipientName,
         icon: getTransactionIconName(transaction, accountIds),
+        amount: transaction.senderAmount ?? transaction.amount,
+        model: transaction.model,
+        referenceNumber: transaction.referenceNumber,
+        paymentPurpose: transaction.paymentPurpose,
+        paymentCode: transaction.paymentCode,
       });
     });
 
-    return Array.from(entries.values()).slice(0, 8);
+    return Array.from(entries.values()).slice(0, 5);
   }, [accountIds, transactions]);
 
   const quickPaymentPages = useMemo(() => {
@@ -142,7 +158,11 @@ export default function QuickPayments({
               }
 
               return (
-                <Pressable key={item.accountId ?? itemIndex}>
+                <Pressable
+                  key={item.accountId ?? itemIndex}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Brzo plaćanje za ${item.name}`}
+                  onPress={() => onSelect(item)}>
                   <View className="w-[72px] items-center">
                     <View className="flex h-[55px] w-[55px] items-center justify-center rounded-full bg-gray-200">
                       <Ionicons name={item.icon} size={24} className="text-cgray" />

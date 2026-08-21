@@ -21,21 +21,6 @@ import {
   View,
 } from "react-native";
 
-const MONTH_LABELS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "Maj",
-  "Jun",
-  "Jul",
-  "Avg",
-  "Sep",
-  "Okt",
-  "Nov",
-  "Dec",
-];
-
 const PAGE_SIZE = 10;
 
 type TransactionFilter = "all" | "income" | "expense";
@@ -103,133 +88,6 @@ const formatTime = (transactionTime: string) =>
     minute: "2-digit",
   }).format(new Date(transactionTime));
 
-function MonthlyOverview({
-  transactions,
-  accountIds,
-  currency,
-  onCurrencyChange,
-}: {
-  transactions: Transaction[];
-  accountIds: Set<string>;
-  currency: "RSD" | "EUR";
-  onCurrencyChange: (currency: "RSD" | "EUR") => void;
-}) {
-  const months = useMemo(() => {
-    const now = new Date();
-    const entries = Array.from({ length: 6 }, (_, index) => {
-      const date = new Date(now.getFullYear(), now.getMonth() - 5 + index, 1);
-
-      return {
-        key: `${date.getFullYear()}-${date.getMonth()}`,
-        label: MONTH_LABELS[date.getMonth()],
-        income: 0,
-        expense: 0,
-      };
-    });
-    const monthsByKey = new Map(entries.map((month) => [month.key, month]));
-
-    transactions.forEach((transaction) => {
-      const date = new Date(transaction.transactionTime);
-      const month = monthsByKey.get(`${date.getFullYear()}-${date.getMonth()}`);
-      if (!month) return;
-
-      const isExpense = accountIds.has(transaction.senderAccount);
-      const transactionCurrency = isExpense
-        ? (transaction.senderCurrency ?? transaction.currency)
-        : (transaction.recipientCurrency ?? transaction.currency);
-      if (transactionCurrency !== currency) return;
-
-      const amount = isExpense
-        ? (transaction.senderAmount ?? transaction.amount)
-        : (transaction.recipientAmount ?? transaction.amount);
-
-      if (isExpense) {
-        month.expense += amount;
-      } else {
-        month.income += amount;
-      }
-    });
-
-    return entries;
-  }, [accountIds, currency, transactions]);
-
-  const highestAmount = Math.max(
-    ...months.flatMap((month) => [month.income, month.expense]),
-    1,
-  );
-
-  return (
-    <View className="mb-7 rounded-3xl bg-[#f5f7f8] p-5">
-      <View className="flex-row items-start justify-between">
-        <View>
-          <Text className="text-xl text-black">Pregled po mesecima</Text>
-          <Text className="pt-1 font-inria-light text-base text-cgray">
-            Prilivi i odlivi u poslednjih 6 meseci
-          </Text>
-        </View>
-        <View className="flex-row rounded-full bg-white p-1">
-          {(["RSD", "EUR"] as const).map((option) => (
-            <Pressable
-              key={option}
-              className={cn(
-                "rounded-full px-3 py-1",
-                option === currency && "bg-ctirquise",
-              )}
-              onPress={() => onCurrencyChange(option)}>
-              <Text
-                className={cn(
-                  "font-inria-bold text-cgray",
-                  option === currency && "text-white",
-                )}>
-                {option}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View className="mt-5 flex-row items-end justify-between">
-        {months.map((month) => (
-          <View key={month.key} className="flex-1 items-center">
-            <View className="h-[112px] flex-row items-end gap-1">
-              <View
-                className="w-[7px] rounded-t-full bg-[#4caf50]"
-                style={{
-                  height:
-                    month.income === 0
-                      ? 0
-                      : Math.max(4, (month.income / highestAmount) * 104),
-                }}
-              />
-              <View
-                className="w-[7px] rounded-t-full bg-[#ef6b73]"
-                style={{
-                  height:
-                    month.expense === 0
-                      ? 0
-                      : Math.max(4, (month.expense / highestAmount) * 104),
-                }}
-              />
-            </View>
-            <Text className="pt-2 text-xs text-cgray">{month.label}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View className="mt-4 flex-row justify-center gap-5">
-        <View className="flex-row items-center gap-2">
-          <View className="h-2 w-2 rounded-full bg-[#4caf50]" />
-          <Text className="text-sm text-cgray">Prilivi</Text>
-        </View>
-        <View className="flex-row items-center gap-2">
-          <View className="h-2 w-2 rounded-full bg-[#ef6b73]" />
-          <Text className="text-sm text-cgray">Odlivi</Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
 export default function TransactionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<TransactionFilter>("all");
@@ -238,7 +96,6 @@ export default function TransactionsPage() {
     TransactionCategory | "all"
   >("all");
   const [filtersVisible, setFiltersVisible] = useState(false);
-  const [overviewCurrency, setOverviewCurrency] = useState<"RSD" | "EUR">("RSD");
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const {
     transactions,
@@ -364,13 +221,6 @@ export default function TransactionsPage() {
         scrollEventThrottle={200}
         showsVerticalScrollIndicator={false}
       >
-        <MonthlyOverview
-          transactions={transactions}
-          accountIds={accountIds}
-          currency={overviewCurrency}
-          onCurrencyChange={setOverviewCurrency}
-        />
-
         <View className="h-11 flex-row items-center rounded-[15px] border-2 border-[#d94c9f] px-3">
           <TextInput
             className="h-11 flex-1 font-inria-light text-lg text-[#303030]"

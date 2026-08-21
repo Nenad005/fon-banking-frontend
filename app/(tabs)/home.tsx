@@ -1,7 +1,9 @@
 import ContentHeader from "@/components/content-header";
 import CardsSwiper from "@/components/home/accounts/cards-swiper";
 import ExhangeRates from "@/components/home/exchange-rates";
-import QuickPayments from "@/components/home/quick-payments";
+import QuickPayments, {
+  QuickPaymentEntry,
+} from "@/components/home/quick-payments";
 import RecentTransactions from "@/components/home/recent-transactions";
 import { Text } from "@/components/text";
 import { useBankingData } from "@/hooks/useBankingData";
@@ -11,6 +13,23 @@ import { ActivityIndicator, ScrollView, View } from "react-native";
 export default function HomePage() {
   const { accounts, transactions, accountIds, isLoading, errorMessage } =
     useBankingData();
+
+  const openQuickPayment = (payment: QuickPaymentEntry) => {
+    router.push({
+      pathname: "/payments",
+      params: {
+        quickPaymentRequest: Date.now().toString(),
+        recipientName: payment.name,
+        recipientAccount: payment.accountId,
+        senderAccount: payment.senderAccountId,
+        amount: payment.amount.toString(),
+        model: payment.model?.toString() ?? "",
+        referenceNumber: payment.referenceNumber ?? "",
+        paymentPurpose: payment.paymentPurpose ?? "",
+        paymentCode: payment.paymentCode ?? "",
+      },
+    });
+  };
 
   return (
     <View className="flex-1 pt-14">
@@ -42,6 +61,7 @@ export default function HomePage() {
             className="pb-10"
             transactions={transactions}
             accountIds={accountIds}
+            onSelect={openQuickPayment}
           />
           <RecentTransactions
             className="pb-10"
