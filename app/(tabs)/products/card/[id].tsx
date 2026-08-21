@@ -106,7 +106,7 @@ export default function CardDetailsPage() {
                     <Text className="font-inria-light text-lg text-cgray">
                       {limit.label} :
                     </Text>
-                    <Text className="text-2xl text-ctirquise">
+                    <Text className="text-lg text-ctirquise">
                       {formatAmount(limit.amount)} {card.currency}
                     </Text>
                   </View>
