@@ -1,5 +1,9 @@
 import { useApi } from "@/context/useApi";
 import { Currency } from "@/lib/currency";
+import {
+  BankingTransaction,
+  BankingTransactionData,
+} from "@/lib/banking-transaction";
 import { useAuth } from "@/context/AuthContext";
 import { isAxiosError } from "axios";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -25,31 +29,12 @@ export type Card = {
   cvv: string;
 };
 
-export type Transaction = {
-  id: string;
-  recipientAccount: string;
-  recipientName: string;
-  senderAccount: string;
-  model: number | null;
-  referenceNumber: string | null;
-  amount: number;
-  currency: Currency;
-  senderAmount: number | null;
-  senderCurrency: Currency | null;
-  recipientAmount: number | null;
-  recipientCurrency: Currency | null;
-  exchangeRate: number | null;
-  paymentPurpose: string | null;
-  paymentCode: string | null;
-  transactionTime: string;
-  status: "realizovano" | "izvrsena" | "odbijena" | "na_cekanju";
-  cardNumber: string | null;
-};
+export { BankingTransaction as Transaction } from "@/lib/banking-transaction";
 
 type BankingDataState = {
   accounts: Account[];
   cards: Card[];
-  transactions: Transaction[];
+  transactions: BankingTransaction[];
   isLoading: boolean;
   isLoadingTransactions: boolean;
   isLoadingMoreTransactions: boolean;
@@ -60,12 +45,26 @@ type BankingDataState = {
 };
 
 type PaginatedTransactions = {
-  data: Transaction[];
+  data: BankingTransaction[];
   current_page: number;
   last_page: number;
   per_page: number;
   total: number;
 };
+
+type PaginatedTransactionData = Omit<PaginatedTransactions, "data"> & {
+  data: BankingTransactionData[];
+};
+
+const hydrateTransaction = (transaction: BankingTransactionData) =>
+  new BankingTransaction(transaction);
+
+const hydrateTransactionPage = (
+  page: PaginatedTransactionData,
+): PaginatedTransactions => ({
+  ...page,
+  data: page.data.map(hydrateTransaction),
+});
 
 export type TransactionHistoryOptions = {
   search?: string;
@@ -103,23 +102,6 @@ const initialState: BankingDataState = {
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
   return "Podaci nisu mogli da se ucitaju.";
-};
-
-const CATEGORY_PAYMENT_CODES: Record<
-  NonNullable<TransactionHistoryOptions["category"]>,
-  string | null
-> = {
-  groceries: "5411",
-  restaurants: "5812",
-  fuel: "5541",
-  utilities: "4900",
-  telecom: "4814",
-  transport: "4111",
-  pharmacy: "5912",
-  clothing: "5691",
-  electronics: "5732",
-  fitness: "7997",
-  other: null,
 };
 
 export const useBankingData = (options: TransactionHistoryOptions = {}) => {
@@ -198,7 +180,7 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
       let page: PaginatedTransactions;
 
       try {
-        const response = await api.get<PaginatedTransactions>("/transactions", {
+        const response = await api.get<PaginatedTransactionData>("/transactions", {
           params: {
             page: 1,
             per_page: perPage,
@@ -209,7 +191,7 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
             category,
           },
         });
-        page = response.data;
+        page = hydrateTransactionPage(response.data);
       } catch (error) {
         if (!isAxiosError(error) || error.response?.status !== 404) throw error;
 
@@ -220,31 +202,23 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
         );
         const responses = await Promise.all(
           accounts.map((account) =>
-            api.get<Transaction[]>(
+            api.get<BankingTransactionData[]>(
               `/accounts/${encodeURIComponent(account.accountId)}/transactions`,
             ),
           ),
         );
-        const transactionsById = new Map<string, Transaction>();
+        const transactionsById = new Map<string, BankingTransaction>();
         responses
-          .flatMap((response) => response.data)
+          .flatMap((response) => response.data.map(hydrateTransaction))
           .forEach((transaction) =>
             transactionsById.set(transaction.id, transaction),
           );
 
         const query = search.trim().toLocaleLowerCase();
         const now = Date.now();
-        const categoryPaymentCode = category
-          ? CATEGORY_PAYMENT_CODES[category]
-          : null;
-        const categoryPaymentCodes = Object.values(
-          CATEGORY_PAYMENT_CODES,
-        ).filter(
-          (paymentCode): paymentCode is string => paymentCode !== null,
-        );
         const transactions = Array.from(transactionsById.values())
           .filter((transaction) => {
-            const isExpense = accountIds.has(transaction.senderAccount);
+            const isExpense = transaction.isOutgoing(accountIds);
             const age =
               now - new Date(transaction.transactionTime).getTime();
             const searchableText = [
@@ -267,10 +241,7 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
                 (method === "card"
                   ? Boolean(transaction.cardNumber)
                   : transaction.status === "na_cekanju")) &&
-              (!category ||
-                (category === "other"
-                  ? !categoryPaymentCodes.includes(transaction.paymentCode ?? "")
-                  : transaction.paymentCode === categoryPaymentCode)) &&
+              (!category || transaction.getCategory(accountIds) === category) &&
               (!query || searchableText.includes(query))
             );
           })
@@ -335,7 +306,7 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
     }));
 
     try {
-      const response = await api.get<PaginatedTransactions>("/transactions", {
+      const response = await api.get<PaginatedTransactionData>("/transactions", {
         params: {
           page: nextPage,
           per_page: perPage,
@@ -349,7 +320,7 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
 
       if (requestId !== transactionRequestId.current) return;
 
-      const page = response.data;
+      const page = hydrateTransactionPage(response.data);
       paginationRef.current = {
         page: page.current_page,
         lastPage: page.last_page,
@@ -388,15 +359,15 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
 
   const getAllTransactions = useCallback(async () => {
     try {
-      const allTransactions: Transaction[] = [];
+      const allTransactions: BankingTransaction[] = [];
       let currentPage = 1;
       let lastPage = 1;
 
       do {
-        const response = await api.get<PaginatedTransactions>("/transactions", {
+        const response = await api.get<PaginatedTransactionData>("/transactions", {
           params: { page: currentPage, per_page: 100 },
         });
-        allTransactions.push(...response.data.data);
+        allTransactions.push(...response.data.data.map(hydrateTransaction));
         lastPage = response.data.last_page;
         currentPage += 1;
       } while (currentPage <= lastPage);
@@ -408,15 +379,15 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
       const accountsResponse = await api.get<Account[]>("/accounts");
       const responses = await Promise.all(
         accountsResponse.data.map((account) =>
-          api.get<Transaction[]>(
+          api.get<BankingTransactionData[]>(
             `/accounts/${encodeURIComponent(account.accountId)}/transactions`,
           ),
         ),
       );
-      const transactions = new Map<string, Transaction>();
+      const transactions = new Map<string, BankingTransaction>();
 
       responses
-        .flatMap((response) => response.data)
+        .flatMap((response) => response.data.map(hydrateTransaction))
         .forEach((transaction) => transactions.set(transaction.id, transaction));
 
       return Array.from(transactions.values()).sort(

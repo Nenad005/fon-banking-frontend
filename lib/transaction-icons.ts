@@ -70,17 +70,6 @@ const PAYMENT_CODE_ICON_MAP: Record<string, IoniconName> = {
   business_funding: "card-outline",
 };
 
-export const getCounterpartyAccountId = (
-  transaction: TransactionLike,
-  ownAccountIds: Set<string>,
-) => {
-  if (ownAccountIds.has(transaction.senderAccount)) {
-    return transaction.recipientAccount;
-  }
-
-  return transaction.senderAccount;
-};
-
 export const getTransactionIconName = (
   transaction: TransactionLike,
   ownAccountIds: Set<string>,

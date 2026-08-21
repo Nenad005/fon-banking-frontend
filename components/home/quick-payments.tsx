@@ -1,10 +1,6 @@
 import { Text } from "@/components/text";
 import { Transaction } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
-import {
-  getCounterpartyAccountId,
-  getTransactionIconName,
-} from "@/lib/transaction-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo, useState } from "react";
 import { Pressable, View, useWindowDimensions } from "react-native";
@@ -21,7 +17,7 @@ export type QuickPaymentEntry = {
   accountId: string;
   senderAccountId: string;
   name: string;
-  icon: ReturnType<typeof getTransactionIconName>;
+  icon: ReturnType<Transaction["getIcon"]>;
   amount: number;
   model: number | null;
   referenceNumber: string | null;
@@ -88,12 +84,9 @@ export default function QuickPayments({
     const entries = new Map<string, QuickPaymentEntry>();
 
     transactions.forEach((transaction) => {
-      if (!accountIds.has(transaction.senderAccount)) return;
+      if (!transaction.isOutgoing(accountIds)) return;
 
-      const counterpartyAccountId = getCounterpartyAccountId(
-        transaction,
-        accountIds,
-      );
+      const counterpartyAccountId = transaction.getCounterpartyAccount(accountIds);
 
       const recipientKey = transaction.recipientName.trim().toLocaleLowerCase();
 
@@ -103,8 +96,8 @@ export default function QuickPayments({
         accountId: counterpartyAccountId,
         senderAccountId: transaction.senderAccount,
         name: transaction.recipientName,
-        icon: getTransactionIconName(transaction, accountIds),
-        amount: transaction.senderAmount ?? transaction.amount,
+        icon: transaction.getIcon(accountIds),
+        amount: transaction.getDisplayAmount(accountIds),
         model: transaction.model,
         referenceNumber: transaction.referenceNumber,
         paymentPurpose: transaction.paymentPurpose,

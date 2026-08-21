@@ -14,11 +14,7 @@ import { useBankingData } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
 import { openQrScanner } from "@/lib/qr-scanner-navigation";
 import { PaymentQrData } from "@/lib/nbs-ips-qr";
-import {
-  formatAccountNumber,
-  isValidDomesticAccount,
-  normalizeAccountNumber,
-} from "@/lib/account-number";
+import { AccountNumber } from "@/lib/account-number";
 
 type PaymentFieldProps = {
   placeholder: string;
@@ -75,7 +71,7 @@ export default function PaymentsPage() {
     quickPaymentParams.recipientName ?? "",
   );
   const [recipientAccount, setRecipientAccount] = useState(
-    formatAccountNumber(quickPaymentParams.recipientAccount ?? ""),
+    new AccountNumber(quickPaymentParams.recipientAccount ?? "").format(),
   );
   const [model, setModel] = useState(quickPaymentParams.model ?? "");
   const [referenceNumber, setReferenceNumber] = useState(
@@ -101,7 +97,7 @@ export default function PaymentsPage() {
 
   const fillQuickPayment = (payment: QuickPaymentEntry) => {
     setRecipientName(payment.name);
-    setRecipientAccount(formatAccountNumber(payment.accountId));
+    setRecipientAccount(new AccountNumber(payment.accountId).format());
     setSelectedAccountId(payment.senderAccountId);
     setAmount(payment.amount.toString());
     setModel(payment.model?.toString() ?? "");
@@ -128,7 +124,7 @@ export default function PaymentsPage() {
     setAppliedQuickPaymentRequest(quickPaymentParams.quickPaymentRequest);
     setRecipientName(quickPaymentParams.recipientName ?? "");
     setRecipientAccount(
-      formatAccountNumber(quickPaymentParams.recipientAccount ?? ""),
+      new AccountNumber(quickPaymentParams.recipientAccount ?? "").format(),
     );
     setSelectedAccountId(quickPaymentParams.senderAccount ?? null);
     setAmount(quickPaymentParams.amount ?? "");
@@ -156,6 +152,7 @@ export default function PaymentsPage() {
 
     const parsedAmount = Number(amount.replace(",", "."));
     const parsedModel = model.trim() ? Number(model) : null;
+    const recipientAccountNumber = new AccountNumber(recipientAccount);
 
     if (!selectedAccount) {
       Alert.alert("Plaćanje nije moguće", "Izaberite račun sa kog plaćate.");
@@ -167,7 +164,7 @@ export default function PaymentsPage() {
       return;
     }
 
-    if (!isValidDomesticAccount(recipientAccount)) {
+    if (!recipientAccountNumber.isValid()) {
       Alert.alert(
         "Neispravan račun",
         "Broj računa mora imati 18 cifara i ispravne kontrolne cifre.",
@@ -186,8 +183,7 @@ export default function PaymentsPage() {
     }
 
     if (
-      normalizeAccountNumber(recipientAccount) ===
-      normalizeAccountNumber(selectedAccount.accountId)
+      recipientAccountNumber.equals(selectedAccount.accountId)
     ) {
       Alert.alert("Neispravan račun", "Ne možete poslati novac na isti račun.");
       return;
@@ -196,9 +192,9 @@ export default function PaymentsPage() {
     setIsSubmitting(true);
 
     try {
-      const accountId = normalizeAccountNumber(recipientAccount);
+      const accountId = recipientAccountNumber.toString();
       await api.post("/transactions/transfer", {
-        senderAccount: normalizeAccountNumber(selectedAccount.accountId),
+        senderAccount: new AccountNumber(selectedAccount.accountId).toString(),
         recipientAccount: accountId,
         recipientName: recipientName.trim(),
         amount: parsedAmount,
@@ -267,7 +263,7 @@ export default function PaymentsPage() {
               <Text className="text-xl text-[#929292]">RAČUN</Text>
               <Text className="text-xl text-cgray">
                 {selectedAccount
-                  ? formatAccountNumber(selectedAccount.accountId)
+                  ? new AccountNumber(selectedAccount.accountId).format()
                   : "IZABERITE RAČUN"}
               </Text>
               {selectedAccount && (
@@ -314,7 +310,9 @@ export default function PaymentsPage() {
           <PaymentField
               placeholder="BROJ RAČUNA"
               value={recipientAccount}
-              onChangeText={(value) => setRecipientAccount(formatAccountNumber(value))}
+              onChangeText={(value) =>
+                setRecipientAccount(new AccountNumber(value).format())
+              }
               keyboardType="numeric"
           />
           <PaymentField 

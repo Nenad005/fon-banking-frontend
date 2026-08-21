@@ -1,6 +1,6 @@
 import { Text } from "@/components/text";
 import { Card } from "@/hooks/useBankingData";
-import { formatAccountNumber } from "@/lib/account-number";
+import { AccountNumber } from "@/lib/account-number";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -58,7 +58,9 @@ export default function CardDetailsItem({
             </Text>
           </View>
           <View className="flex-row items-center gap-2">
-            <Text className="text-white">{formatAccountNumber(card.accountId)}</Text>
+            <Text className="text-white">
+              {new AccountNumber(card.accountId).format()}
+            </Text>
             <Text className="rounded-full bg-white/15 px-2 py-0.5 font-inria-bold text-white">
               {card.currency}
             </Text>

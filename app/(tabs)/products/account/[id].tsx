@@ -49,10 +49,8 @@ export default function AccountDetailsPage() {
   const { accounts, transactions, isLoading, errorMessage } = useBankingData();
   const account = accounts.find((entry) => entry.accountId === id);
   const accountTransactions = account
-    ? transactions.filter(
-        (transaction) =>
-          transaction.senderAccount === account.accountId ||
-          transaction.recipientAccount === account.accountId,
+    ? transactions.filter((transaction) =>
+        transaction.involvesAccount(account.accountId),
       )
     : [];
   const selectedAccountIds = new Set(account ? [account.accountId] : []);

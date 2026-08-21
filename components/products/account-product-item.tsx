@@ -1,7 +1,7 @@
 import { Text } from "@/components/text";
 import { Account } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
-import { formatAccountNumber } from "@/lib/account-number";
+import { AccountNumber } from "@/lib/account-number";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import * as Clipboard from "expo-clipboard";
 import LottieView from "lottie-react-native";
@@ -33,7 +33,7 @@ export default function AccountProductItem({
     maximumFractionDigits: 2,
   }).format(account.balance);
 
-  const formattedId = formatAccountNumber(account.accountId);
+  const formattedId = new AccountNumber(account.accountId).format();
 
   const animationRef = useRef<LottieView>(null);
 

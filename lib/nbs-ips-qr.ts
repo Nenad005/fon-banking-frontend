@@ -1,4 +1,4 @@
-import { formatAccountNumber } from "@/lib/account-number";
+import { AccountNumber } from "@/lib/account-number";
 
 export type NbsQrFields = {
   K?: string;
@@ -48,7 +48,7 @@ export function mapNbsFieldsToPayment(fields: NbsQrFields): PaymentQrData {
 
   return {
     recipientName: cleanSingleLine(fields.N),
-    recipientAccount: formatAccountNumber(fields.R ?? ""),
+    recipientAccount: new AccountNumber(fields.R ?? "").format(),
     model: reference.slice(0, 2),
     referenceNumber: reference.slice(2),
     amount: amountMatch?.[1] ?? "",
@@ -58,7 +58,7 @@ export function mapNbsFieldsToPayment(fields: NbsQrFields): PaymentQrData {
 }
 
 export function buildNbsQrText(data: PaymentQrData) {
-  const account = data.recipientAccount.replace(/\D/g, "");
+  const account = new AccountNumber(data.recipientAccount).normalized;
   const parsedAmount = Number(data.amount.trim().replace(",", "."));
   const amount = Number.isFinite(parsedAmount)
     ? parsedAmount.toFixed(2).replace(".", ",")

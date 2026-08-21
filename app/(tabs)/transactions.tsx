@@ -2,7 +2,6 @@ import { Text } from "@/components/text";
 import { Transaction, useBankingData } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
 import {
-  getTransactionIconName,
   TRANSACTION_CATEGORIES,
   TransactionCategory,
 } from "@/lib/transaction-icons";
@@ -435,13 +434,9 @@ export default function TransactionsPage() {
 
             <View className="gap-1">
               {group.transactions.map((transaction) => {
-                const isExpense = accountIds.has(transaction.senderAccount);
-                const amount = isExpense
-                  ? (transaction.senderAmount ?? transaction.amount)
-                  : (transaction.recipientAmount ?? transaction.amount);
-                const currency = isExpense
-                  ? (transaction.senderCurrency ?? transaction.currency)
-                  : (transaction.recipientCurrency ?? transaction.currency);
+                const isExpense = transaction.isOutgoing(accountIds);
+                const amount = transaction.getDisplayAmount(accountIds);
+                const currency = transaction.getDisplayCurrency(accountIds);
                 const title = isExpense
                   ? transaction.recipientName
                   : transaction.recipientName ||
@@ -454,7 +449,7 @@ export default function TransactionsPage() {
                   >
                     <View className="h-[50px] w-[50px] items-center justify-center rounded-full bg-[#f3f3f3]">
                       <Ionicons
-                        name={getTransactionIconName(transaction, accountIds)}
+                        name={transaction.getIcon(accountIds)}
                         size={27}
                         color="#005a91"
                       />

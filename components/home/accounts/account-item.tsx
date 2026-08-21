@@ -1,7 +1,7 @@
 import { Account } from "@/hooks/useBankingData";
 import { Text } from "@/components/text";
 import { cn } from "@/lib/utils";
-import { formatAccountNumber } from "@/lib/account-number";
+import { AccountNumber } from "@/lib/account-number";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Clipboard from "expo-clipboard";
@@ -47,7 +47,7 @@ export default function AccountItem({
     maximumFractionDigits: 2,
   });
   const formattedBalance = formatter.format(account.balance);
-  const formattedId = formatAccountNumber(account.accountId);
+  const formattedId = new AccountNumber(account.accountId).format();
 
   const reAnimatedStyle = useAnimatedStyle(() => {
     return {

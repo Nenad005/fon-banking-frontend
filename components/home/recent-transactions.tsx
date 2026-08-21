@@ -1,7 +1,6 @@
 import { Text } from "@/components/text";
 import { Transaction } from "@/hooks/useBankingData";
 import { cn } from "@/lib/utils";
-import { getTransactionIconName } from "@/lib/transaction-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { View } from "react-native";
 
@@ -82,13 +81,9 @@ export default function RecentTransactions({
           </Text>
         ) : null}
         {recentTransactions.map((transaction) => {
-          const isOutgoing = accountIds.has(transaction.senderAccount);
-          const displayAmount = isOutgoing
-            ? (transaction.senderAmount ?? transaction.amount)
-            : (transaction.recipientAmount ?? transaction.amount);
-          const displayCurrency = isOutgoing
-            ? (transaction.senderCurrency ?? transaction.currency)
-            : (transaction.recipientCurrency ?? transaction.currency);
+          const isOutgoing = transaction.isOutgoing(accountIds);
+          const displayAmount = transaction.getDisplayAmount(accountIds);
+          const displayCurrency = transaction.getDisplayCurrency(accountIds);
           const formattedAmount = new Intl.NumberFormat("sr-Latn-RS", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -101,7 +96,7 @@ export default function RecentTransactions({
             <View key={transaction.id} className="flex-row items-center w-full">
               <View className="flex justify-center items-center w-[55px] h-[55px] rounded-full bg-gray-200">
                 <Ionicons
-                  name={getTransactionIconName(transaction, accountIds)}
+                  name={transaction.getIcon(accountIds)}
                   size={30}
                   className="text-ctirquise"
                 />

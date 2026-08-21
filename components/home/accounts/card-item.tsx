@@ -1,7 +1,7 @@
 import { Card } from "@/hooks/useBankingData";
 import { Text } from "@/components/text";
 import { cn } from "@/lib/utils";
-import { formatAccountNumber } from "@/lib/account-number";
+import { AccountNumber } from "@/lib/account-number";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Dimensions, Pressable, View } from "react-native";
@@ -51,7 +51,7 @@ export default function CardItem({
     };
   });
 
-  const formattedId = formatAccountNumber(card.accountId);
+  const formattedId = new AccountNumber(card.accountId).format();
 
   let hiddenCardDigits = ["", "", "", ""];
   let j = 0;

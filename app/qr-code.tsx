@@ -1,6 +1,6 @@
 import { Text } from "@/components/text";
 import { useApi } from "@/context/useApi";
-import { formatAccountNumber } from "@/lib/account-number";
+import { AccountNumber } from "@/lib/account-number";
 import {
   buildNbsQrText,
   isSuccessfulNbsResponse,
@@ -167,7 +167,9 @@ export default function QrCodePage() {
                 <QrDetail label="Primalac" value={fields.N} />
                 <QrDetail
                   label="Račun"
-                  value={fields.R ? formatAccountNumber(fields.R) : undefined}
+                  value={
+                    fields.R ? new AccountNumber(fields.R).format() : undefined
+                  }
                 />
                 <QrDetail label="Iznos" value={fields.I} />
                 <QrDetail label="Šifra plaćanja" value={fields.SF} />
@@ -193,7 +195,8 @@ export default function QrCodePage() {
                 Kreiraj zahtev za uplatu
               </Text>
               <Text className="pt-2 text-center text-lg text-cgray">
-                QR kod će uplatiti sredstva na {formatAccountNumber(recipientAccount)}.
+                QR kod će uplatiti sredstva na{" "}
+                {new AccountNumber(recipientAccount).format()}.
               </Text>
             </View>
 
