@@ -72,18 +72,6 @@ export type TransactionHistoryOptions = {
   method?: "card" | "pending";
   accountId?: string;
   cardId?: string;
-  category?:
-    | "groceries"
-    | "restaurants"
-    | "fuel"
-    | "utilities"
-    | "telecom"
-    | "transport"
-    | "pharmacy"
-    | "clothing"
-    | "electronics"
-    | "fitness"
-    | "other";
   perPage?: number;
 };
 
@@ -118,7 +106,6 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
     method,
     accountId,
     cardId,
-    category,
     perPage = 20,
   } = options;
 
@@ -193,7 +180,6 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
               method,
               account_id: accountId,
               card_id: cardId,
-              category,
             },
           },
         );
@@ -228,7 +214,6 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
       accountId,
       api,
       cardId,
-      category,
       direction,
       isAuthenticated,
       method,
@@ -269,7 +254,6 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
             method,
             account_id: accountId,
             card_id: cardId,
-            category,
           },
         },
       );
@@ -315,7 +299,6 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
     accountId,
     api,
     cardId,
-    category,
     direction,
     isAuthenticated,
     method,
@@ -342,7 +325,6 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
             method,
             account_id: accountId,
             card_id: cardId,
-            category,
           },
         },
       );
@@ -352,7 +334,7 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
     } while (currentPage <= lastPage);
 
     return allTransactions;
-  }, [accountId, api, cardId, category, direction, method, period, search]);
+  }, [accountId, api, cardId, direction, method, period, search]);
 
   const refetch = useCallback(async () => {
     await Promise.all([loadAccountsAndCards(), loadTransactions(true)]);
