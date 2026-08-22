@@ -5,7 +5,6 @@ import {
   BankingTransactionData,
 } from "@/lib/banking-transaction";
 import { useAuth } from "@/context/AuthContext";
-import { isAxiosError } from "axios";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type Account = {
@@ -182,96 +181,23 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
       }));
 
       try {
-        let page: PaginatedTransactions;
-
-        try {
-          const response = await api.get<PaginatedTransactionData>(
-            "/transactions",
-            {
-              params: {
-                page: 1,
-                per_page: perPage,
-                search: search.trim() || undefined,
-                direction,
-                period,
-                method,
-                account_id: accountId,
-                card_id: cardId,
-                category,
-              },
+        const response = await api.get<PaginatedTransactionData>(
+          "/transactions",
+          {
+            params: {
+              page: 1,
+              per_page: perPage,
+              search: search.trim() || undefined,
+              direction,
+              period,
+              method,
+              account_id: accountId,
+              card_id: cardId,
+              category,
             },
-          );
-          page = hydrateTransactionPage(response.data);
-        } catch (error) {
-          if (!isAxiosError(error) || error.response?.status !== 404)
-            throw error;
-
-          const accountsResponse = await api.get<Account[]>("/accounts");
-          const accounts = accountsResponse.data;
-          const accountIds = new Set(
-            accounts.map((account) => account.accountId),
-          );
-          const responses = await Promise.all(
-            accounts.map((account) =>
-              api.get<BankingTransactionData[]>(
-                `/accounts/${encodeURIComponent(account.accountId)}/transactions`,
-              ),
-            ),
-          );
-          const transactionsById = new Map<string, BankingTransaction>();
-          responses
-            .flatMap((response) => response.data.map(hydrateTransaction))
-            .forEach((transaction) =>
-              transactionsById.set(transaction.id, transaction),
-            );
-
-          const query = search.trim().toLocaleLowerCase();
-          const now = Date.now();
-          const transactions = Array.from(transactionsById.values())
-            .filter((transaction) => {
-              const isExpense = transaction.isOutgoing(accountIds);
-              const age = now - new Date(transaction.transactionTime).getTime();
-              const searchableText = [
-                transaction.recipientName,
-                transaction.senderAccount,
-                transaction.recipientAccount,
-                transaction.paymentPurpose,
-                transaction.paymentCode,
-              ]
-                .filter(Boolean)
-                .join(" ")
-                .toLocaleLowerCase();
-
-              return (
-                (!direction ||
-                  (direction === "expense" ? isExpense : !isExpense)) &&
-                (!period || age <= (period === "7days" ? 7 : 30) * 86400000) &&
-                (!method ||
-                  (method === "card"
-                    ? Boolean(transaction.cardNumber)
-                    : transaction.status === "na_cekanju")) &&
-                (!accountId || transaction.involvesAccount(accountId)) &&
-                (!cardId || transaction.cardNumber === cardId) &&
-                (!category ||
-                  transaction.getCategory(accountIds) === category) &&
-                (!query || searchableText.includes(query))
-              );
-            })
-            .sort(
-              (first, second) =>
-                new Date(second.transactionTime).getTime() -
-                  new Date(first.transactionTime).getTime() ||
-                second.id.localeCompare(first.id),
-            );
-
-          page = {
-            data: transactions,
-            current_page: 1,
-            last_page: 1,
-            per_page: transactions.length,
-            total: transactions.length,
-          };
-        }
+          },
+        );
+        const page = hydrateTransactionPage(response.data);
 
         if (requestId !== transactionRequestId.current) return;
 
@@ -399,60 +325,33 @@ export const useBankingData = (options: TransactionHistoryOptions = {}) => {
   ]);
 
   const getAllTransactions = useCallback(async () => {
-    try {
-      const allTransactions: BankingTransaction[] = [];
-      let currentPage = 1;
-      let lastPage = 1;
+    const allTransactions: BankingTransaction[] = [];
+    let currentPage = 1;
+    let lastPage = 1;
 
-      do {
-        const response = await api.get<PaginatedTransactionData>(
-          "/transactions",
-          {
-            params: {
-              page: currentPage,
-              per_page: 100,
-              search: search.trim() || undefined,
-              direction,
-              period,
-              method,
-              account_id: accountId,
-              card_id: cardId,
-              category,
-            },
+    do {
+      const response = await api.get<PaginatedTransactionData>(
+        "/transactions",
+        {
+          params: {
+            page: currentPage,
+            per_page: 100,
+            search: search.trim() || undefined,
+            direction,
+            period,
+            method,
+            account_id: accountId,
+            card_id: cardId,
+            category,
           },
-        );
-        allTransactions.push(...response.data.data.map(hydrateTransaction));
-        lastPage = response.data.last_page;
-        currentPage += 1;
-      } while (currentPage <= lastPage);
-
-      return allTransactions;
-    } catch (error) {
-      if (!isAxiosError(error) || error.response?.status !== 404) throw error;
-
-      const accountsResponse = await api.get<Account[]>("/accounts");
-      const responses = await Promise.all(
-        accountsResponse.data.map((account) =>
-          api.get<BankingTransactionData[]>(
-            `/accounts/${encodeURIComponent(account.accountId)}/transactions`,
-          ),
-        ),
+        },
       );
-      const transactions = new Map<string, BankingTransaction>();
+      allTransactions.push(...response.data.data.map(hydrateTransaction));
+      lastPage = response.data.last_page;
+      currentPage += 1;
+    } while (currentPage <= lastPage);
 
-      responses
-        .flatMap((response) => response.data.map(hydrateTransaction))
-        .forEach((transaction) =>
-          transactions.set(transaction.id, transaction),
-        );
-
-      return Array.from(transactions.values()).sort(
-        (first, second) =>
-          new Date(second.transactionTime).getTime() -
-            new Date(first.transactionTime).getTime() ||
-          second.id.localeCompare(first.id),
-      );
-    }
+    return allTransactions;
   }, [accountId, api, cardId, category, direction, method, period, search]);
 
   const refetch = useCallback(async () => {
