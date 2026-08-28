@@ -80,93 +80,25 @@ URL zavisi od uredjaja na kome se aplikacija pokrece:
 
 `localhost` na fizickom telefonu oznacava sam telefon, a ne razvojni racunar. Zbog toga fizicki uredjaj koristi LAN adresu racunara. Telefon i racunar moraju biti na istoj mrezi, a lokalni firewall mora dozvoliti port 8000.
 
-## Fizicki Android uredjaj
+## Pokretanje pomocu Expo Go aplikacije
 
-Najjednostavniji postupak koristi Expo Go i automatsku LAN konfiguraciju:
-
-1. Pokrenite backend sa `--host=0.0.0.0`.
-2. Povezite Android telefon i razvojni racunar na istu mrezu.
-3. U frontend direktorijumu pokrenite `npm start`.
-4. Otvorite Expo Go i skenirajte QR kod prikazan u terminalu ili browseru.
-
-```bash
-npm start
-```
-
-Skripta automatski pronalazi aktivnu LAN IPv4 adresu racunara, postavlja URL oblika `http://<LAN_IP>:8000/api/v1` i pokrece Expo u LAN rezimu.
-
-Ako skripta izabere pogresan mrezni interfejs, adresu zadajte eksplicitno:
-
-```bash
-LAN_IP=192.168.1.50 npm start
-```
-
-Na Windows PowerShell-u ekvivalent je:
-
-```powershell
-$env:LAN_IP="192.168.1.50"
-npm start
-```
-
-## Fizicki iPhone
-
-Postupak je isti kao za fizicki Android:
-
-1. Pokrenite backend sa `--host=0.0.0.0`.
-2. Povezite iPhone i razvojni racunar na istu mrezu.
-3. Pokrenite `npm start`.
-4. Skenirajte Expo QR kod iPhone kamerom i otvorite projekat u Expo Go aplikaciji.
-
-```bash
-npm start
-```
-
-Pri prvom koriscenju iOS moze traziti dozvolu za pristup uredjajima u lokalnoj mrezi. Dozvola mora biti odobrena da bi aplikacija mogla da pristupi lokalnom backendu.
-
-## Android emulator
-
-Pokrenite Android virtuelni uredjaj iz Android Studio Device Manager-a. Standardni Android emulator pristupa razvojnom racunaru preko adrese `10.0.2.2`.
-
-macOS ili Linux:
-
-```bash
-EXPO_PUBLIC_API_URL=http://10.0.2.2:8000/api/v1 npm run start:manual
-```
-
-Windows PowerShell:
-
-```powershell
-$env:EXPO_PUBLIC_API_URL="http://10.0.2.2:8000/api/v1"
-npm run start:manual
-```
-
-Kada se Metro pokrene, pritisnite `a` u terminalu da otvorite aplikaciju u emulatoru.
-
-## iOS Simulator
-
-iOS Simulator radi samo na macOS-u. Pokrenite backend, a zatim:
-
-```bash
-EXPO_PUBLIC_API_URL=http://127.0.0.1:8000/api/v1 npm run start:manual
-```
-
-Kada se Metro pokrene, pritisnite `i` u terminalu. Ako simulator nije vec pokrenut, Expo ce pokusati da ga otvori kroz Xcode.
-
-## `.env.local` fajl i rucno pokretanje
-
-Ako ne zelite automatsku detekciju LAN adrese, napravite `.env.local` u frontend direktorijumu:
+Napravite `.env.local` u frontend direktorijumu i unesite odgovarajucu adresu backenda. Na primer, za fizicki uredjaj koristite LAN adresu razvojnog racunara:
 
 ```env
 EXPO_PUBLIC_API_URL=http://192.168.1.50:8000/api/v1
 ```
 
-Zatim koristite:
+Pokrenite Expo development server:
 
 ```bash
-npm run start:manual
+npx expo start
 ```
 
-Komanda `npm start` namerno postavlja automatski pronadjenu LAN adresu i time ima prednost nad vrednoscu iz `.env.local` fajla. `.env.local` je zato najkorisniji uz `npm run start:manual` i vec je izuzet iz Git repozitorijuma.
+Na fizickom Android uredjaju otvorite Expo Go i skenirajte QR kod iz terminala. Na iPhone-u skenirajte QR kod kamerom i otvorite projekat u Expo Go aplikaciji. Telefon i razvojni racunar moraju biti na istoj mrezi.
+
+Za Android emulator pritisnite `a`, a za iOS Simulator `i` u terminalu. Vrednost `EXPO_PUBLIC_API_URL` prethodno podesite prema tabeli iz sekcije [API konfiguracija](#api-konfiguracija).
+
+Pri prvom pokretanju na iOS-u sistem moze zatraziti dozvolu za pristup uredjajima u lokalnoj mrezi. Ova dozvola mora biti odobrena da bi aplikacija pristupila lokalnom backendu.
 
 Posle promene promenljive okruzenja zaustavite Metro i ponovo ga pokrenite. Ako je stara vrednost ostala u cache-u, koristite:
 
@@ -174,34 +106,65 @@ Posle promene promenljive okruzenja zaustavite Metro i ponovo ga pokrenite. Ako 
 npx expo start --clear
 ```
 
-## Lokalni native build za Android
+## Lokalni development build
+
+Komande `run` kompajliraju native aplikaciju, instaliraju je na dostupni uredjaj ili emulator i pokrecu Metro server. Koristite ih za prvi build i nakon promene native zavisnosti ili konfiguracije.
+
+### Android
 
 Za native Android build potrebni su Android Studio, Android SDK i ispravno podesen emulator ili USB uredjaj. Pokrenite:
 
-macOS ili Linux:
+```bash
+npx expo run:android
+```
+
+Ako je dostupno vise fizickih uredjaja ili emulatora, dodajte `--device` i izaberite uredjaj sa liste:
 
 ```bash
-EXPO_PUBLIC_API_URL=http://10.0.2.2:8000/api/v1 npm run android
+npx expo run:android --device
 ```
 
-Windows PowerShell:
+Fizicki Android uredjaj mora imati ukljucene Developer options i USB debugging.
 
-```powershell
-$env:EXPO_PUBLIC_API_URL="http://10.0.2.2:8000/api/v1"
-npm run android
-```
-
-Za fizicki Android uredjaj umesto `10.0.2.2` koristite LAN adresu racunara. Uredjaj mora imati ukljucen Developer options i USB debugging.
-
-## Lokalni native build za iOS
+### iOS
 
 Native iOS build zahteva macOS i Xcode:
 
 ```bash
-EXPO_PUBLIC_API_URL=http://127.0.0.1:8000/api/v1 npm run ios
+npx expo run:ios
 ```
 
-Komanda generise potrebne native direktorijume ako ne postoje, instalira iOS zavisnosti i pokrece aplikaciju u simulatoru. Za fizicki iPhone koristite LAN adresu racunara i odgovarajuci Apple development signing nalog u Xcode-u.
+Ako je dostupno vise fizickih uredjaja ili simulatora, dodajte `--device`:
+
+```bash
+npx expo run:ios --device
+```
+
+Za fizicki iPhone potreban je odgovarajuci Apple development signing nalog u Xcode-u.
+
+Nakon sto je development build instaliran, za svakodnevne JavaScript i TypeScript izmene dovoljno je ponovo pokrenuti Metro bez novog native builda:
+
+```bash
+npx expo start
+```
+
+## Lokalni production build
+
+Production build se kompajlira, instalira i pokrece na dostupnom uredjaju ili emulatoru, gde ostaje instaliran i nakon zavrsetka komande.
+
+Za Android koristite `release` varijantu:
+
+```bash
+npx expo run:android --variant release
+```
+
+Za iOS koristite `Release` konfiguraciju:
+
+```bash
+npx expo run:ios --configuration Release
+```
+
+Po potrebi se i ovim komandama moze dodati `--device` za izbor ciljnog uredjaja. Ovi lokalni production buildovi sluze za testiranje i nisu automatski potpisani za objavljivanje u Google Play ili App Store prodavnici.
 
 ## Demonstracioni pristup
 
