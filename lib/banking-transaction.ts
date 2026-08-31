@@ -12,12 +12,10 @@ export type BankingTransactionData = {
   senderName: string;
   model: number | null;
   referenceNumber: string | null;
-  amount: number;
-  currency: Currency;
-  senderAmount: number | null;
-  senderCurrency: Currency | null;
-  recipientAmount: number | null;
-  recipientCurrency: Currency | null;
+  senderAmount: number;
+  senderCurrency: Currency;
+  recipientAmount: number;
+  recipientCurrency: Currency;
   exchangeRate: number | null;
   paymentPurpose: string | null;
   paymentCode: string | null;
@@ -34,12 +32,10 @@ export class BankingTransaction implements BankingTransactionData {
   readonly senderName: string;
   readonly model: number | null;
   readonly referenceNumber: string | null;
-  readonly amount: number;
-  readonly currency: Currency;
-  readonly senderAmount: number | null;
-  readonly senderCurrency: Currency | null;
-  readonly recipientAmount: number | null;
-  readonly recipientCurrency: Currency | null;
+  readonly senderAmount: number;
+  readonly senderCurrency: Currency;
+  readonly recipientAmount: number;
+  readonly recipientCurrency: Currency;
   readonly exchangeRate: number | null;
   readonly paymentPurpose: string | null;
   readonly paymentCode: string | null;
@@ -55,8 +51,6 @@ export class BankingTransaction implements BankingTransactionData {
     this.senderName = data.senderName;
     this.model = data.model;
     this.referenceNumber = data.referenceNumber;
-    this.amount = data.amount;
-    this.currency = data.currency;
     this.senderAmount = data.senderAmount;
     this.senderCurrency = data.senderCurrency;
     this.recipientAmount = data.recipientAmount;
@@ -89,14 +83,14 @@ export class BankingTransaction implements BankingTransactionData {
 
   getDisplayAmount(ownAccountIds: Set<string>) {
     return this.isOutgoing(ownAccountIds)
-      ? (this.senderAmount ?? this.amount)
-      : (this.recipientAmount ?? this.amount);
+      ? this.senderAmount
+      : this.recipientAmount;
   }
 
   getDisplayCurrency(ownAccountIds: Set<string>) {
     return this.isOutgoing(ownAccountIds)
-      ? (this.senderCurrency ?? this.currency)
-      : (this.recipientCurrency ?? this.currency);
+      ? this.senderCurrency
+      : this.recipientCurrency;
   }
 
   getCounterpartyAccount(ownAccountIds: Set<string>) {

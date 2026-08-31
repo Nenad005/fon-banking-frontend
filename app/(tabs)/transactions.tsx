@@ -235,8 +235,8 @@ export default function TransactionsPage() {
           transaction.recipientAccount,
           transaction.recipientName,
           transaction.paymentPurpose,
-          transaction.amount,
-          transaction.currency,
+          transaction.getDisplayAmount(accountIds),
+          transaction.getDisplayCurrency(accountIds),
           transaction.status,
         ]
           .map(escapeCsv)
